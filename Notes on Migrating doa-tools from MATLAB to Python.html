@@ -1,0 +1,563 @@
+<!DOCTYPE html>
+<!-- saved from url=(0099)https://research.wmz.ninja/articles/2018/10/notes-on-migrating-doa-tools-from-matlab-to-python.html -->
+<html lang="en"><head><meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+    
+    <meta http-equiv="x-ua-compatible" content="ie=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="author" content="Mianzhi Wang">
+    <meta property="og:type" content="article">
+    <meta property="og:url" content="/articles/2018/10/notes-on-migrating-doa-tools-from-matlab-to-python.html">
+    <meta property="og:title" content="Notes on Migrating doa-tools from MATLAB to Python">
+    <meta property="og:locale" content="en_US">
+    <link rel="icon" type="image/png" href="https://research.wmz.ninja/favicon.png" sizes="32x32">
+    <link rel="stylesheet" href="./Notes on Migrating doa-tools from MATLAB to Python_files/normalize.css">
+    <link rel="stylesheet" href="./Notes on Migrating doa-tools from MATLAB to Python_files/style_v2.css">
+    <link rel="stylesheet" href="./Notes on Migrating doa-tools from MATLAB to Python_files/hljs-github.css">
+    <link rel="stylesheet" href="./Notes on Migrating doa-tools from MATLAB to Python_files/katex.min.css">
+    <link rel="stylesheet" href="./Notes on Migrating doa-tools from MATLAB to Python_files/article_v2.css">
+    <title>Notes on Migrating doa-tools from MATLAB to Python</title>
+  </head>
+  <body lang="en" dir="ltr">
+    <div class="header_layout">
+      <div class="header">
+        <div class="info_card">
+          <h1>Mianzhi Wang</h1>
+          <p>Ph.D. in Electrical Engineering</p>
+        </div>
+        <div class="nav"><a href="https://research.wmz.ninja/index.html"><span>Home</span></a><a href="https://research.wmz.ninja/research.html"><span>Research</span></a><a href="https://research.wmz.ninja/education.html"><span>Education</span></a><a href="https://research.wmz.ninja/courses.html"><span>Courses</span></a><a class="current" href="https://research.wmz.ninja/blog.html"><span>Blog</span></a></div>
+      </div>
+    </div>
+    <div class="content_layout">
+      <div class="content">
+        <div class="article_header">
+          <h1 class="article_title">Notes on Migrating doa-tools from MATLAB to Python</h1>
+          <div class="article_info">
+            <p>Date: 10-27 2018</p>
+            <p>Tags:&nbsp;<a href="https://research.wmz.ninja/articles/tag/matlab.html">matlab</a>,&nbsp;<a href="https://research.wmz.ninja/articles/tag/python.html">python</a>
+            </p>
+          </div>
+        </div>
+        <hr class="article_header_sep">
+        <div class="article_content"><p>Recently, I migrated my MATLAB library for my research, namely <a href="https://github.com/morriswmz/doa-tools">doa-tools</a>, to Python because I will no longer have access to MATLAB after graduation. MATLAB is a great tool for array processing related research. However, it is not freely accessible to everyone. Python, on the other hand, is more broadly accessible.</p>
+<p>The overall migration process was not easy, but was quite smooth. I had to rewrite thousands lines of code to replace MATLAB functions with their <a href="https://www.numpy.org/">NumPy</a>, <a href="https://www.scipy.org/">SciPy</a>, and <a href="https://matplotlib.org/">Matplotlib</a> counterparts. The original MATLAB code was written without classes in mind. With Python classes, I can better organize my code. I also added tests and set up <a href="http://www.sphinx-doc.org/en/master/">Sphinx</a> to generate documentations. You can check the fully documented Python version <a href="https://github.com/morriswmz/doatools.py">here</a>.</p>
+<p>This article summarizes a list of note I took during the migration process. For a complete manual on moving from MATLAB to Python, always start with NumPy's official migration guide <a href="https://docs.scipy.org/doc/numpy/user/numpy-for-matlab-users.html">here</a>. The code samples in this articles are based on MATLAB 2017b and Python 3.6. In all Python code samples, we will assume that <code>numpy</code> is imported as <code>np</code> and that <code>matplotlib.pyplot</code> is imported as <code>plt</code>.</p>
+<h2>Multidimensional arrays</h2>
+<p>In MATLAB, every variable is a multidimensional array<sup class="footnote-ref"><a href="https://research.wmz.ninja/articles/2018/10/notes-on-migrating-doa-tools-from-matlab-to-python.html#fn1" id="fnref1">[1]</a></sup>. This is definitely not the case for Python. In Python, we use NumPy to manipulate multidimensional arrays. Although the MATLAB syntax and NumPy syntax share a lot of similarities, there are still many notable differences.</p>
+<h3>Row-major order is used by default</h3>
+<p>NumPy stores elements in <a href="https://en.wikipedia.org/wiki/Row-_and_column-major_order">row-major order</a> by default, while MATLAB stores elements in <a href="https://en.wikipedia.org/wiki/Row-_and_column-major_order">column-major order</a>. Therefore, in NumPy, <code>reshape</code> will generally produce results different from those in MATLAB.</p>
+<p>MATLAB (column-major order):</p>
+<div class="environment equation"><div class="equation_body no_number" id=""><span class="katex-display"><span class="katex"><span class="katex-mathml"><math><semantics><mrow><mtext>Matrix&nbsp;layout:&nbsp;</mtext><mrow><mo fence="true">[</mo><mtable><mtr><mtd><mstyle scriptlevel="0" displaystyle="false"><mrow><msub><mi>A</mi><mrow><mn>1</mn><mn>1</mn></mrow></msub></mrow></mstyle></mtd><mtd><mstyle scriptlevel="0" displaystyle="false"><mrow><msub><mi>A</mi><mrow><mn>1</mn><mn>2</mn></mrow></msub></mrow></mstyle></mtd><mtd><mstyle scriptlevel="0" displaystyle="false"><mrow><msub><mi>A</mi><mrow><mn>1</mn><mn>3</mn></mrow></msub></mrow></mstyle></mtd></mtr><mtr><mtd><mstyle scriptlevel="0" displaystyle="false"><mrow><msub><mi>A</mi><mrow><mn>2</mn><mn>1</mn></mrow></msub></mrow></mstyle></mtd><mtd><mstyle scriptlevel="0" displaystyle="false"><mrow><msub><mi>A</mi><mrow><mn>2</mn><mn>2</mn></mrow></msub></mrow></mstyle></mtd><mtd><mstyle scriptlevel="0" displaystyle="false"><mrow><msub><mi>A</mi><mrow><mn>2</mn><mn>3</mn></mrow></msub></mrow></mstyle></mtd></mtr><mtr><mtd><mstyle scriptlevel="0" displaystyle="false"><mrow><msub><mi>A</mi><mrow><mn>3</mn><mn>1</mn></mrow></msub></mrow></mstyle></mtd><mtd><mstyle scriptlevel="0" displaystyle="false"><mrow><msub><mi>A</mi><mrow><mn>3</mn><mn>2</mn></mrow></msub></mrow></mstyle></mtd><mtd><mstyle scriptlevel="0" displaystyle="false"><mrow><msub><mi>A</mi><mrow><mn>3</mn><mn>3</mn></mrow></msub></mrow></mstyle></mtd></mtr></mtable><mo fence="true">]</mo></mrow><mspace width="0.277778em"></mspace><mo>⟹</mo><mspace width="0.277778em"></mspace><mtext>Memory&nbsp;layout:&nbsp;</mtext><mrow><mo fence="true">[</mo><mtable><mtr><mtd><mstyle scriptlevel="0" displaystyle="false"><mrow><msub><mi>A</mi><mrow><mn>1</mn><mn>1</mn></mrow></msub></mrow></mstyle></mtd><mtd><mstyle scriptlevel="0" displaystyle="false"><mrow><msub><mi>A</mi><mrow><mn>2</mn><mn>1</mn></mrow></msub></mrow></mstyle></mtd><mtd><mstyle scriptlevel="0" displaystyle="false"><mrow><msub><mi>A</mi><mrow><mn>3</mn><mn>1</mn></mrow></msub></mrow></mstyle></mtd><mtd><mstyle scriptlevel="0" displaystyle="false"><mrow><msub><mi>A</mi><mrow><mn>1</mn><mn>2</mn></mrow></msub></mrow></mstyle></mtd><mtd><mstyle scriptlevel="0" displaystyle="false"><mrow><msub><mi>A</mi><mrow><mn>2</mn><mn>2</mn></mrow></msub></mrow></mstyle></mtd><mtd><mstyle scriptlevel="0" displaystyle="false"><mrow><msub><mi>A</mi><mrow><mn>3</mn><mn>2</mn></mrow></msub></mrow></mstyle></mtd><mtd><mstyle scriptlevel="0" displaystyle="false"><mrow><msub><mi>A</mi><mrow><mn>1</mn><mn>3</mn></mrow></msub></mrow></mstyle></mtd><mtd><mstyle scriptlevel="0" displaystyle="false"><mrow><msub><mi>A</mi><mrow><mn>2</mn><mn>3</mn></mrow></msub></mrow></mstyle></mtd><mtd><mstyle scriptlevel="0" displaystyle="false"><mrow><msub><mi>A</mi><mrow><mn>3</mn><mn>3</mn></mrow></msub></mrow></mstyle></mtd></mtr></mtable><mo fence="true">]</mo></mrow></mrow><annotation encoding="application/x-tex">\text{Matrix layout: }
+\begin{bmatrix}
+    A_{11} &amp; A_{12} &amp; A_{13}\\
+    A_{21} &amp; A_{22} &amp; A_{23}\\
+    A_{31} &amp; A_{32} &amp; A_{33}
+\end{bmatrix}
+\implies
+\text{Memory layout: }
+\begin{bmatrix}
+    A_{11} &amp; A_{21} &amp; A_{31} &amp;
+    A_{12} &amp; A_{22} &amp; A_{32} &amp;
+    A_{13} &amp; A_{23} &amp; A_{33}
+\end{bmatrix}
+</annotation></semantics></math></span><span class="katex-html" aria-hidden="true"><span class="strut" style="height:2.05002em;"></span><span class="strut bottom" style="height:3.60004em;vertical-align:-1.55002em;"></span><span class="base"><span class="mord text"><span class="mord mathrm">Matrix&nbsp;layout:&nbsp;</span></span><span class="minner"><span class="mopen"><span class="delimsizing mult"><span class="vlist-t vlist-t2"><span class="vlist-r"><span class="vlist" style="height:2.05002em;"><span style="top:-2.2500000000000004em;"><span class="pstrut" style="height:3.1550000000000002em;"></span><span class="delimsizinginner delim-size4"><span>⎣</span></span></span><span style="top:-4.05002em;"><span class="pstrut" style="height:3.1550000000000002em;"></span><span class="delimsizinginner delim-size4"><span>⎡</span></span></span></span><span class="vlist-s">​</span></span><span class="vlist-r"><span class="vlist" style="height:1.55002em;"></span></span></span></span></span><span class="mord"><span class="mtable"><span class="col-align-c"><span class="vlist-t vlist-t2"><span class="vlist-r"><span class="vlist" style="height:2.05em;"><span style="top:-4.21em;"><span class="pstrut" style="height:3em;"></span><span class="mord"><span class="mord"><span class="mord mathit">A</span><span class="msupsub"><span class="vlist-t vlist-t2"><span class="vlist-r"><span class="vlist" style="height:0.30110799999999993em;"><span style="top:-2.5500000000000003em;margin-left:0em;margin-right:0.05em;"><span class="pstrut" style="height:2.7em;"></span><span class="sizing reset-size6 size3 mtight"><span class="mord mtight"><span class="mord mathrm mtight">1</span><span class="mord mathrm mtight">1</span></span></span></span></span><span class="vlist-s">​</span></span><span class="vlist-r"><span class="vlist" style="height:0.15em;"></span></span></span></span></span></span></span><span style="top:-3.0099999999999993em;"><span class="pstrut" style="height:3em;"></span><span class="mord"><span class="mord"><span class="mord mathit">A</span><span class="msupsub"><span class="vlist-t vlist-t2"><span class="vlist-r"><span class="vlist" style="height:0.30110799999999993em;"><span style="top:-2.5500000000000003em;margin-left:0em;margin-right:0.05em;"><span class="pstrut" style="height:2.7em;"></span><span class="sizing reset-size6 size3 mtight"><span class="mord mtight"><span class="mord mathrm mtight">2</span><span class="mord mathrm mtight">1</span></span></span></span></span><span class="vlist-s">​</span></span><span class="vlist-r"><span class="vlist" style="height:0.15em;"></span></span></span></span></span></span></span><span style="top:-1.8099999999999994em;"><span class="pstrut" style="height:3em;"></span><span class="mord"><span class="mord"><span class="mord mathit">A</span><span class="msupsub"><span class="vlist-t vlist-t2"><span class="vlist-r"><span class="vlist" style="height:0.30110799999999993em;"><span style="top:-2.5500000000000003em;margin-left:0em;margin-right:0.05em;"><span class="pstrut" style="height:2.7em;"></span><span class="sizing reset-size6 size3 mtight"><span class="mord mtight"><span class="mord mathrm mtight">3</span><span class="mord mathrm mtight">1</span></span></span></span></span><span class="vlist-s">​</span></span><span class="vlist-r"><span class="vlist" style="height:0.15em;"></span></span></span></span></span></span></span></span><span class="vlist-s">​</span></span><span class="vlist-r"><span class="vlist" style="height:1.5500000000000007em;"></span></span></span></span><span class="arraycolsep" style="width:0.5em;"></span><span class="arraycolsep" style="width:0.5em;"></span><span class="col-align-c"><span class="vlist-t vlist-t2"><span class="vlist-r"><span class="vlist" style="height:2.05em;"><span style="top:-4.21em;"><span class="pstrut" style="height:3em;"></span><span class="mord"><span class="mord"><span class="mord mathit">A</span><span class="msupsub"><span class="vlist-t vlist-t2"><span class="vlist-r"><span class="vlist" style="height:0.30110799999999993em;"><span style="top:-2.5500000000000003em;margin-left:0em;margin-right:0.05em;"><span class="pstrut" style="height:2.7em;"></span><span class="sizing reset-size6 size3 mtight"><span class="mord mtight"><span class="mord mathrm mtight">1</span><span class="mord mathrm mtight">2</span></span></span></span></span><span class="vlist-s">​</span></span><span class="vlist-r"><span class="vlist" style="height:0.15em;"></span></span></span></span></span></span></span><span style="top:-3.0099999999999993em;"><span class="pstrut" style="height:3em;"></span><span class="mord"><span class="mord"><span class="mord mathit">A</span><span class="msupsub"><span class="vlist-t vlist-t2"><span class="vlist-r"><span class="vlist" style="height:0.30110799999999993em;"><span style="top:-2.5500000000000003em;margin-left:0em;margin-right:0.05em;"><span class="pstrut" style="height:2.7em;"></span><span class="sizing reset-size6 size3 mtight"><span class="mord mtight"><span class="mord mathrm mtight">2</span><span class="mord mathrm mtight">2</span></span></span></span></span><span class="vlist-s">​</span></span><span class="vlist-r"><span class="vlist" style="height:0.15em;"></span></span></span></span></span></span></span><span style="top:-1.8099999999999994em;"><span class="pstrut" style="height:3em;"></span><span class="mord"><span class="mord"><span class="mord mathit">A</span><span class="msupsub"><span class="vlist-t vlist-t2"><span class="vlist-r"><span class="vlist" style="height:0.30110799999999993em;"><span style="top:-2.5500000000000003em;margin-left:0em;margin-right:0.05em;"><span class="pstrut" style="height:2.7em;"></span><span class="sizing reset-size6 size3 mtight"><span class="mord mtight"><span class="mord mathrm mtight">3</span><span class="mord mathrm mtight">2</span></span></span></span></span><span class="vlist-s">​</span></span><span class="vlist-r"><span class="vlist" style="height:0.15em;"></span></span></span></span></span></span></span></span><span class="vlist-s">​</span></span><span class="vlist-r"><span class="vlist" style="height:1.5500000000000007em;"></span></span></span></span><span class="arraycolsep" style="width:0.5em;"></span><span class="arraycolsep" style="width:0.5em;"></span><span class="col-align-c"><span class="vlist-t vlist-t2"><span class="vlist-r"><span class="vlist" style="height:2.05em;"><span style="top:-4.21em;"><span class="pstrut" style="height:3em;"></span><span class="mord"><span class="mord"><span class="mord mathit">A</span><span class="msupsub"><span class="vlist-t vlist-t2"><span class="vlist-r"><span class="vlist" style="height:0.30110799999999993em;"><span style="top:-2.5500000000000003em;margin-left:0em;margin-right:0.05em;"><span class="pstrut" style="height:2.7em;"></span><span class="sizing reset-size6 size3 mtight"><span class="mord mtight"><span class="mord mathrm mtight">1</span><span class="mord mathrm mtight">3</span></span></span></span></span><span class="vlist-s">​</span></span><span class="vlist-r"><span class="vlist" style="height:0.15em;"></span></span></span></span></span></span></span><span style="top:-3.0099999999999993em;"><span class="pstrut" style="height:3em;"></span><span class="mord"><span class="mord"><span class="mord mathit">A</span><span class="msupsub"><span class="vlist-t vlist-t2"><span class="vlist-r"><span class="vlist" style="height:0.30110799999999993em;"><span style="top:-2.5500000000000003em;margin-left:0em;margin-right:0.05em;"><span class="pstrut" style="height:2.7em;"></span><span class="sizing reset-size6 size3 mtight"><span class="mord mtight"><span class="mord mathrm mtight">2</span><span class="mord mathrm mtight">3</span></span></span></span></span><span class="vlist-s">​</span></span><span class="vlist-r"><span class="vlist" style="height:0.15em;"></span></span></span></span></span></span></span><span style="top:-1.8099999999999994em;"><span class="pstrut" style="height:3em;"></span><span class="mord"><span class="mord"><span class="mord mathit">A</span><span class="msupsub"><span class="vlist-t vlist-t2"><span class="vlist-r"><span class="vlist" style="height:0.30110799999999993em;"><span style="top:-2.5500000000000003em;margin-left:0em;margin-right:0.05em;"><span class="pstrut" style="height:2.7em;"></span><span class="sizing reset-size6 size3 mtight"><span class="mord mtight"><span class="mord mathrm mtight">3</span><span class="mord mathrm mtight">3</span></span></span></span></span><span class="vlist-s">​</span></span><span class="vlist-r"><span class="vlist" style="height:0.15em;"></span></span></span></span></span></span></span></span><span class="vlist-s">​</span></span><span class="vlist-r"><span class="vlist" style="height:1.5500000000000007em;"></span></span></span></span></span></span><span class="mclose"><span class="delimsizing mult"><span class="vlist-t vlist-t2"><span class="vlist-r"><span class="vlist" style="height:2.05002em;"><span style="top:-2.2500000000000004em;"><span class="pstrut" style="height:3.1550000000000002em;"></span><span class="delimsizinginner delim-size4"><span>⎦</span></span></span><span style="top:-4.05002em;"><span class="pstrut" style="height:3.1550000000000002em;"></span><span class="delimsizinginner delim-size4"><span>⎤</span></span></span></span><span class="vlist-s">​</span></span><span class="vlist-r"><span class="vlist" style="height:1.55002em;"></span></span></span></span></span></span><span class="mrel"><span class="mspace thickspace"></span><span class="mrel">⟹</span></span><span class="mord text"><span class="mspace thickspace"></span><span class="mord mathrm">Memory&nbsp;layout:&nbsp;</span></span><span class="minner"><span class="mopen delimcenter" style="top:0em;"><span class="delimsizing size1">[</span></span><span class="mord"><span class="mtable"><span class="col-align-c"><span class="vlist-t vlist-t2"><span class="vlist-r"><span class="vlist" style="height:0.8500000000000001em;"><span style="top:-3.01em;"><span class="pstrut" style="height:3em;"></span><span class="mord"><span class="mord"><span class="mord mathit">A</span><span class="msupsub"><span class="vlist-t vlist-t2"><span class="vlist-r"><span class="vlist" style="height:0.30110799999999993em;"><span style="top:-2.5500000000000003em;margin-left:0em;margin-right:0.05em;"><span class="pstrut" style="height:2.7em;"></span><span class="sizing reset-size6 size3 mtight"><span class="mord mtight"><span class="mord mathrm mtight">1</span><span class="mord mathrm mtight">1</span></span></span></span></span><span class="vlist-s">​</span></span><span class="vlist-r"><span class="vlist" style="height:0.15em;"></span></span></span></span></span></span></span></span><span class="vlist-s">​</span></span><span class="vlist-r"><span class="vlist" style="height:0.35000000000000003em;"></span></span></span></span><span class="arraycolsep" style="width:0.5em;"></span><span class="arraycolsep" style="width:0.5em;"></span><span class="col-align-c"><span class="vlist-t vlist-t2"><span class="vlist-r"><span class="vlist" style="height:0.8500000000000001em;"><span style="top:-3.01em;"><span class="pstrut" style="height:3em;"></span><span class="mord"><span class="mord"><span class="mord mathit">A</span><span class="msupsub"><span class="vlist-t vlist-t2"><span class="vlist-r"><span class="vlist" style="height:0.30110799999999993em;"><span style="top:-2.5500000000000003em;margin-left:0em;margin-right:0.05em;"><span class="pstrut" style="height:2.7em;"></span><span class="sizing reset-size6 size3 mtight"><span class="mord mtight"><span class="mord mathrm mtight">2</span><span class="mord mathrm mtight">1</span></span></span></span></span><span class="vlist-s">​</span></span><span class="vlist-r"><span class="vlist" style="height:0.15em;"></span></span></span></span></span></span></span></span><span class="vlist-s">​</span></span><span class="vlist-r"><span class="vlist" style="height:0.35000000000000003em;"></span></span></span></span><span class="arraycolsep" style="width:0.5em;"></span><span class="arraycolsep" style="width:0.5em;"></span><span class="col-align-c"><span class="vlist-t vlist-t2"><span class="vlist-r"><span class="vlist" style="height:0.8500000000000001em;"><span style="top:-3.01em;"><span class="pstrut" style="height:3em;"></span><span class="mord"><span class="mord"><span class="mord mathit">A</span><span class="msupsub"><span class="vlist-t vlist-t2"><span class="vlist-r"><span class="vlist" style="height:0.30110799999999993em;"><span style="top:-2.5500000000000003em;margin-left:0em;margin-right:0.05em;"><span class="pstrut" style="height:2.7em;"></span><span class="sizing reset-size6 size3 mtight"><span class="mord mtight"><span class="mord mathrm mtight">3</span><span class="mord mathrm mtight">1</span></span></span></span></span><span class="vlist-s">​</span></span><span class="vlist-r"><span class="vlist" style="height:0.15em;"></span></span></span></span></span></span></span></span><span class="vlist-s">​</span></span><span class="vlist-r"><span class="vlist" style="height:0.35000000000000003em;"></span></span></span></span><span class="arraycolsep" style="width:0.5em;"></span><span class="arraycolsep" style="width:0.5em;"></span><span class="col-align-c"><span class="vlist-t vlist-t2"><span class="vlist-r"><span class="vlist" style="height:0.8500000000000001em;"><span style="top:-3.01em;"><span class="pstrut" style="height:3em;"></span><span class="mord"><span class="mord"><span class="mord mathit">A</span><span class="msupsub"><span class="vlist-t vlist-t2"><span class="vlist-r"><span class="vlist" style="height:0.30110799999999993em;"><span style="top:-2.5500000000000003em;margin-left:0em;margin-right:0.05em;"><span class="pstrut" style="height:2.7em;"></span><span class="sizing reset-size6 size3 mtight"><span class="mord mtight"><span class="mord mathrm mtight">1</span><span class="mord mathrm mtight">2</span></span></span></span></span><span class="vlist-s">​</span></span><span class="vlist-r"><span class="vlist" style="height:0.15em;"></span></span></span></span></span></span></span></span><span class="vlist-s">​</span></span><span class="vlist-r"><span class="vlist" style="height:0.35000000000000003em;"></span></span></span></span><span class="arraycolsep" style="width:0.5em;"></span><span class="arraycolsep" style="width:0.5em;"></span><span class="col-align-c"><span class="vlist-t vlist-t2"><span class="vlist-r"><span class="vlist" style="height:0.8500000000000001em;"><span style="top:-3.01em;"><span class="pstrut" style="height:3em;"></span><span class="mord"><span class="mord"><span class="mord mathit">A</span><span class="msupsub"><span class="vlist-t vlist-t2"><span class="vlist-r"><span class="vlist" style="height:0.30110799999999993em;"><span style="top:-2.5500000000000003em;margin-left:0em;margin-right:0.05em;"><span class="pstrut" style="height:2.7em;"></span><span class="sizing reset-size6 size3 mtight"><span class="mord mtight"><span class="mord mathrm mtight">2</span><span class="mord mathrm mtight">2</span></span></span></span></span><span class="vlist-s">​</span></span><span class="vlist-r"><span class="vlist" style="height:0.15em;"></span></span></span></span></span></span></span></span><span class="vlist-s">​</span></span><span class="vlist-r"><span class="vlist" style="height:0.35000000000000003em;"></span></span></span></span><span class="arraycolsep" style="width:0.5em;"></span><span class="arraycolsep" style="width:0.5em;"></span><span class="col-align-c"><span class="vlist-t vlist-t2"><span class="vlist-r"><span class="vlist" style="height:0.8500000000000001em;"><span style="top:-3.01em;"><span class="pstrut" style="height:3em;"></span><span class="mord"><span class="mord"><span class="mord mathit">A</span><span class="msupsub"><span class="vlist-t vlist-t2"><span class="vlist-r"><span class="vlist" style="height:0.30110799999999993em;"><span style="top:-2.5500000000000003em;margin-left:0em;margin-right:0.05em;"><span class="pstrut" style="height:2.7em;"></span><span class="sizing reset-size6 size3 mtight"><span class="mord mtight"><span class="mord mathrm mtight">3</span><span class="mord mathrm mtight">2</span></span></span></span></span><span class="vlist-s">​</span></span><span class="vlist-r"><span class="vlist" style="height:0.15em;"></span></span></span></span></span></span></span></span><span class="vlist-s">​</span></span><span class="vlist-r"><span class="vlist" style="height:0.35000000000000003em;"></span></span></span></span><span class="arraycolsep" style="width:0.5em;"></span><span class="arraycolsep" style="width:0.5em;"></span><span class="col-align-c"><span class="vlist-t vlist-t2"><span class="vlist-r"><span class="vlist" style="height:0.8500000000000001em;"><span style="top:-3.01em;"><span class="pstrut" style="height:3em;"></span><span class="mord"><span class="mord"><span class="mord mathit">A</span><span class="msupsub"><span class="vlist-t vlist-t2"><span class="vlist-r"><span class="vlist" style="height:0.30110799999999993em;"><span style="top:-2.5500000000000003em;margin-left:0em;margin-right:0.05em;"><span class="pstrut" style="height:2.7em;"></span><span class="sizing reset-size6 size3 mtight"><span class="mord mtight"><span class="mord mathrm mtight">1</span><span class="mord mathrm mtight">3</span></span></span></span></span><span class="vlist-s">​</span></span><span class="vlist-r"><span class="vlist" style="height:0.15em;"></span></span></span></span></span></span></span></span><span class="vlist-s">​</span></span><span class="vlist-r"><span class="vlist" style="height:0.35000000000000003em;"></span></span></span></span><span class="arraycolsep" style="width:0.5em;"></span><span class="arraycolsep" style="width:0.5em;"></span><span class="col-align-c"><span class="vlist-t vlist-t2"><span class="vlist-r"><span class="vlist" style="height:0.8500000000000001em;"><span style="top:-3.01em;"><span class="pstrut" style="height:3em;"></span><span class="mord"><span class="mord"><span class="mord mathit">A</span><span class="msupsub"><span class="vlist-t vlist-t2"><span class="vlist-r"><span class="vlist" style="height:0.30110799999999993em;"><span style="top:-2.5500000000000003em;margin-left:0em;margin-right:0.05em;"><span class="pstrut" style="height:2.7em;"></span><span class="sizing reset-size6 size3 mtight"><span class="mord mtight"><span class="mord mathrm mtight">2</span><span class="mord mathrm mtight">3</span></span></span></span></span><span class="vlist-s">​</span></span><span class="vlist-r"><span class="vlist" style="height:0.15em;"></span></span></span></span></span></span></span></span><span class="vlist-s">​</span></span><span class="vlist-r"><span class="vlist" style="height:0.35000000000000003em;"></span></span></span></span><span class="arraycolsep" style="width:0.5em;"></span><span class="arraycolsep" style="width:0.5em;"></span><span class="col-align-c"><span class="vlist-t vlist-t2"><span class="vlist-r"><span class="vlist" style="height:0.8500000000000001em;"><span style="top:-3.01em;"><span class="pstrut" style="height:3em;"></span><span class="mord"><span class="mord"><span class="mord mathit">A</span><span class="msupsub"><span class="vlist-t vlist-t2"><span class="vlist-r"><span class="vlist" style="height:0.30110799999999993em;"><span style="top:-2.5500000000000003em;margin-left:0em;margin-right:0.05em;"><span class="pstrut" style="height:2.7em;"></span><span class="sizing reset-size6 size3 mtight"><span class="mord mtight"><span class="mord mathrm mtight">3</span><span class="mord mathrm mtight">3</span></span></span></span></span><span class="vlist-s">​</span></span><span class="vlist-r"><span class="vlist" style="height:0.15em;"></span></span></span></span></span></span></span></span><span class="vlist-s">​</span></span><span class="vlist-r"><span class="vlist" style="height:0.35000000000000003em;"></span></span></span></span></span></span><span class="mclose delimcenter" style="top:0em;"><span class="delimsizing size1">]</span></span></span></span></span></span></span></div><div class="equation_number"><span></span></div></div><p>NumPy (row-major order):</p>
+<div class="environment equation"><div class="equation_body no_number" id=""><span class="katex-display"><span class="katex"><span class="katex-mathml"><math><semantics><mrow><mtext>Matrix&nbsp;layout:&nbsp;</mtext><mrow><mo fence="true">[</mo><mtable><mtr><mtd><mstyle scriptlevel="0" displaystyle="false"><mrow><msub><mi>A</mi><mrow><mn>1</mn><mn>1</mn></mrow></msub></mrow></mstyle></mtd><mtd><mstyle scriptlevel="0" displaystyle="false"><mrow><msub><mi>A</mi><mrow><mn>1</mn><mn>2</mn></mrow></msub></mrow></mstyle></mtd><mtd><mstyle scriptlevel="0" displaystyle="false"><mrow><msub><mi>A</mi><mrow><mn>1</mn><mn>3</mn></mrow></msub></mrow></mstyle></mtd></mtr><mtr><mtd><mstyle scriptlevel="0" displaystyle="false"><mrow><msub><mi>A</mi><mrow><mn>2</mn><mn>1</mn></mrow></msub></mrow></mstyle></mtd><mtd><mstyle scriptlevel="0" displaystyle="false"><mrow><msub><mi>A</mi><mrow><mn>2</mn><mn>2</mn></mrow></msub></mrow></mstyle></mtd><mtd><mstyle scriptlevel="0" displaystyle="false"><mrow><msub><mi>A</mi><mrow><mn>2</mn><mn>3</mn></mrow></msub></mrow></mstyle></mtd></mtr><mtr><mtd><mstyle scriptlevel="0" displaystyle="false"><mrow><msub><mi>A</mi><mrow><mn>3</mn><mn>1</mn></mrow></msub></mrow></mstyle></mtd><mtd><mstyle scriptlevel="0" displaystyle="false"><mrow><msub><mi>A</mi><mrow><mn>3</mn><mn>2</mn></mrow></msub></mrow></mstyle></mtd><mtd><mstyle scriptlevel="0" displaystyle="false"><mrow><msub><mi>A</mi><mrow><mn>3</mn><mn>3</mn></mrow></msub></mrow></mstyle></mtd></mtr></mtable><mo fence="true">]</mo></mrow><mspace width="0.277778em"></mspace><mo>⟹</mo><mspace width="0.277778em"></mspace><mtext>Memory&nbsp;layout:&nbsp;</mtext><mrow><mo fence="true">[</mo><mtable><mtr><mtd><mstyle scriptlevel="0" displaystyle="false"><mrow><msub><mi>A</mi><mrow><mn>1</mn><mn>1</mn></mrow></msub></mrow></mstyle></mtd><mtd><mstyle scriptlevel="0" displaystyle="false"><mrow><msub><mi>A</mi><mrow><mn>1</mn><mn>2</mn></mrow></msub></mrow></mstyle></mtd><mtd><mstyle scriptlevel="0" displaystyle="false"><mrow><msub><mi>A</mi><mrow><mn>1</mn><mn>3</mn></mrow></msub></mrow></mstyle></mtd><mtd><mstyle scriptlevel="0" displaystyle="false"><mrow><msub><mi>A</mi><mrow><mn>2</mn><mn>1</mn></mrow></msub></mrow></mstyle></mtd><mtd><mstyle scriptlevel="0" displaystyle="false"><mrow><msub><mi>A</mi><mrow><mn>2</mn><mn>2</mn></mrow></msub></mrow></mstyle></mtd><mtd><mstyle scriptlevel="0" displaystyle="false"><mrow><msub><mi>A</mi><mrow><mn>2</mn><mn>3</mn></mrow></msub></mrow></mstyle></mtd><mtd><mstyle scriptlevel="0" displaystyle="false"><mrow><msub><mi>A</mi><mrow><mn>3</mn><mn>1</mn></mrow></msub></mrow></mstyle></mtd><mtd><mstyle scriptlevel="0" displaystyle="false"><mrow><msub><mi>A</mi><mrow><mn>3</mn><mn>2</mn></mrow></msub></mrow></mstyle></mtd><mtd><mstyle scriptlevel="0" displaystyle="false"><mrow><msub><mi>A</mi><mrow><mn>3</mn><mn>3</mn></mrow></msub></mrow></mstyle></mtd></mtr></mtable><mo fence="true">]</mo></mrow></mrow><annotation encoding="application/x-tex">\text{Matrix layout: }
+\begin{bmatrix}
+    A_{11} &amp; A_{12} &amp; A_{13}\\
+    A_{21} &amp; A_{22} &amp; A_{23}\\
+    A_{31} &amp; A_{32} &amp; A_{33}
+\end{bmatrix}
+\implies
+\text{Memory layout: }
+\begin{bmatrix}
+    A_{11} &amp; A_{12} &amp; A_{13} &amp;
+    A_{21} &amp; A_{22} &amp; A_{23} &amp;
+    A_{31} &amp; A_{32} &amp; A_{33}
+\end{bmatrix}
+</annotation></semantics></math></span><span class="katex-html" aria-hidden="true"><span class="strut" style="height:2.05002em;"></span><span class="strut bottom" style="height:3.60004em;vertical-align:-1.55002em;"></span><span class="base"><span class="mord text"><span class="mord mathrm">Matrix&nbsp;layout:&nbsp;</span></span><span class="minner"><span class="mopen"><span class="delimsizing mult"><span class="vlist-t vlist-t2"><span class="vlist-r"><span class="vlist" style="height:2.05002em;"><span style="top:-2.2500000000000004em;"><span class="pstrut" style="height:3.1550000000000002em;"></span><span class="delimsizinginner delim-size4"><span>⎣</span></span></span><span style="top:-4.05002em;"><span class="pstrut" style="height:3.1550000000000002em;"></span><span class="delimsizinginner delim-size4"><span>⎡</span></span></span></span><span class="vlist-s">​</span></span><span class="vlist-r"><span class="vlist" style="height:1.55002em;"></span></span></span></span></span><span class="mord"><span class="mtable"><span class="col-align-c"><span class="vlist-t vlist-t2"><span class="vlist-r"><span class="vlist" style="height:2.05em;"><span style="top:-4.21em;"><span class="pstrut" style="height:3em;"></span><span class="mord"><span class="mord"><span class="mord mathit">A</span><span class="msupsub"><span class="vlist-t vlist-t2"><span class="vlist-r"><span class="vlist" style="height:0.30110799999999993em;"><span style="top:-2.5500000000000003em;margin-left:0em;margin-right:0.05em;"><span class="pstrut" style="height:2.7em;"></span><span class="sizing reset-size6 size3 mtight"><span class="mord mtight"><span class="mord mathrm mtight">1</span><span class="mord mathrm mtight">1</span></span></span></span></span><span class="vlist-s">​</span></span><span class="vlist-r"><span class="vlist" style="height:0.15em;"></span></span></span></span></span></span></span><span style="top:-3.0099999999999993em;"><span class="pstrut" style="height:3em;"></span><span class="mord"><span class="mord"><span class="mord mathit">A</span><span class="msupsub"><span class="vlist-t vlist-t2"><span class="vlist-r"><span class="vlist" style="height:0.30110799999999993em;"><span style="top:-2.5500000000000003em;margin-left:0em;margin-right:0.05em;"><span class="pstrut" style="height:2.7em;"></span><span class="sizing reset-size6 size3 mtight"><span class="mord mtight"><span class="mord mathrm mtight">2</span><span class="mord mathrm mtight">1</span></span></span></span></span><span class="vlist-s">​</span></span><span class="vlist-r"><span class="vlist" style="height:0.15em;"></span></span></span></span></span></span></span><span style="top:-1.8099999999999994em;"><span class="pstrut" style="height:3em;"></span><span class="mord"><span class="mord"><span class="mord mathit">A</span><span class="msupsub"><span class="vlist-t vlist-t2"><span class="vlist-r"><span class="vlist" style="height:0.30110799999999993em;"><span style="top:-2.5500000000000003em;margin-left:0em;margin-right:0.05em;"><span class="pstrut" style="height:2.7em;"></span><span class="sizing reset-size6 size3 mtight"><span class="mord mtight"><span class="mord mathrm mtight">3</span><span class="mord mathrm mtight">1</span></span></span></span></span><span class="vlist-s">​</span></span><span class="vlist-r"><span class="vlist" style="height:0.15em;"></span></span></span></span></span></span></span></span><span class="vlist-s">​</span></span><span class="vlist-r"><span class="vlist" style="height:1.5500000000000007em;"></span></span></span></span><span class="arraycolsep" style="width:0.5em;"></span><span class="arraycolsep" style="width:0.5em;"></span><span class="col-align-c"><span class="vlist-t vlist-t2"><span class="vlist-r"><span class="vlist" style="height:2.05em;"><span style="top:-4.21em;"><span class="pstrut" style="height:3em;"></span><span class="mord"><span class="mord"><span class="mord mathit">A</span><span class="msupsub"><span class="vlist-t vlist-t2"><span class="vlist-r"><span class="vlist" style="height:0.30110799999999993em;"><span style="top:-2.5500000000000003em;margin-left:0em;margin-right:0.05em;"><span class="pstrut" style="height:2.7em;"></span><span class="sizing reset-size6 size3 mtight"><span class="mord mtight"><span class="mord mathrm mtight">1</span><span class="mord mathrm mtight">2</span></span></span></span></span><span class="vlist-s">​</span></span><span class="vlist-r"><span class="vlist" style="height:0.15em;"></span></span></span></span></span></span></span><span style="top:-3.0099999999999993em;"><span class="pstrut" style="height:3em;"></span><span class="mord"><span class="mord"><span class="mord mathit">A</span><span class="msupsub"><span class="vlist-t vlist-t2"><span class="vlist-r"><span class="vlist" style="height:0.30110799999999993em;"><span style="top:-2.5500000000000003em;margin-left:0em;margin-right:0.05em;"><span class="pstrut" style="height:2.7em;"></span><span class="sizing reset-size6 size3 mtight"><span class="mord mtight"><span class="mord mathrm mtight">2</span><span class="mord mathrm mtight">2</span></span></span></span></span><span class="vlist-s">​</span></span><span class="vlist-r"><span class="vlist" style="height:0.15em;"></span></span></span></span></span></span></span><span style="top:-1.8099999999999994em;"><span class="pstrut" style="height:3em;"></span><span class="mord"><span class="mord"><span class="mord mathit">A</span><span class="msupsub"><span class="vlist-t vlist-t2"><span class="vlist-r"><span class="vlist" style="height:0.30110799999999993em;"><span style="top:-2.5500000000000003em;margin-left:0em;margin-right:0.05em;"><span class="pstrut" style="height:2.7em;"></span><span class="sizing reset-size6 size3 mtight"><span class="mord mtight"><span class="mord mathrm mtight">3</span><span class="mord mathrm mtight">2</span></span></span></span></span><span class="vlist-s">​</span></span><span class="vlist-r"><span class="vlist" style="height:0.15em;"></span></span></span></span></span></span></span></span><span class="vlist-s">​</span></span><span class="vlist-r"><span class="vlist" style="height:1.5500000000000007em;"></span></span></span></span><span class="arraycolsep" style="width:0.5em;"></span><span class="arraycolsep" style="width:0.5em;"></span><span class="col-align-c"><span class="vlist-t vlist-t2"><span class="vlist-r"><span class="vlist" style="height:2.05em;"><span style="top:-4.21em;"><span class="pstrut" style="height:3em;"></span><span class="mord"><span class="mord"><span class="mord mathit">A</span><span class="msupsub"><span class="vlist-t vlist-t2"><span class="vlist-r"><span class="vlist" style="height:0.30110799999999993em;"><span style="top:-2.5500000000000003em;margin-left:0em;margin-right:0.05em;"><span class="pstrut" style="height:2.7em;"></span><span class="sizing reset-size6 size3 mtight"><span class="mord mtight"><span class="mord mathrm mtight">1</span><span class="mord mathrm mtight">3</span></span></span></span></span><span class="vlist-s">​</span></span><span class="vlist-r"><span class="vlist" style="height:0.15em;"></span></span></span></span></span></span></span><span style="top:-3.0099999999999993em;"><span class="pstrut" style="height:3em;"></span><span class="mord"><span class="mord"><span class="mord mathit">A</span><span class="msupsub"><span class="vlist-t vlist-t2"><span class="vlist-r"><span class="vlist" style="height:0.30110799999999993em;"><span style="top:-2.5500000000000003em;margin-left:0em;margin-right:0.05em;"><span class="pstrut" style="height:2.7em;"></span><span class="sizing reset-size6 size3 mtight"><span class="mord mtight"><span class="mord mathrm mtight">2</span><span class="mord mathrm mtight">3</span></span></span></span></span><span class="vlist-s">​</span></span><span class="vlist-r"><span class="vlist" style="height:0.15em;"></span></span></span></span></span></span></span><span style="top:-1.8099999999999994em;"><span class="pstrut" style="height:3em;"></span><span class="mord"><span class="mord"><span class="mord mathit">A</span><span class="msupsub"><span class="vlist-t vlist-t2"><span class="vlist-r"><span class="vlist" style="height:0.30110799999999993em;"><span style="top:-2.5500000000000003em;margin-left:0em;margin-right:0.05em;"><span class="pstrut" style="height:2.7em;"></span><span class="sizing reset-size6 size3 mtight"><span class="mord mtight"><span class="mord mathrm mtight">3</span><span class="mord mathrm mtight">3</span></span></span></span></span><span class="vlist-s">​</span></span><span class="vlist-r"><span class="vlist" style="height:0.15em;"></span></span></span></span></span></span></span></span><span class="vlist-s">​</span></span><span class="vlist-r"><span class="vlist" style="height:1.5500000000000007em;"></span></span></span></span></span></span><span class="mclose"><span class="delimsizing mult"><span class="vlist-t vlist-t2"><span class="vlist-r"><span class="vlist" style="height:2.05002em;"><span style="top:-2.2500000000000004em;"><span class="pstrut" style="height:3.1550000000000002em;"></span><span class="delimsizinginner delim-size4"><span>⎦</span></span></span><span style="top:-4.05002em;"><span class="pstrut" style="height:3.1550000000000002em;"></span><span class="delimsizinginner delim-size4"><span>⎤</span></span></span></span><span class="vlist-s">​</span></span><span class="vlist-r"><span class="vlist" style="height:1.55002em;"></span></span></span></span></span></span><span class="mrel"><span class="mspace thickspace"></span><span class="mrel">⟹</span></span><span class="mord text"><span class="mspace thickspace"></span><span class="mord mathrm">Memory&nbsp;layout:&nbsp;</span></span><span class="minner"><span class="mopen delimcenter" style="top:0em;"><span class="delimsizing size1">[</span></span><span class="mord"><span class="mtable"><span class="col-align-c"><span class="vlist-t vlist-t2"><span class="vlist-r"><span class="vlist" style="height:0.8500000000000001em;"><span style="top:-3.01em;"><span class="pstrut" style="height:3em;"></span><span class="mord"><span class="mord"><span class="mord mathit">A</span><span class="msupsub"><span class="vlist-t vlist-t2"><span class="vlist-r"><span class="vlist" style="height:0.30110799999999993em;"><span style="top:-2.5500000000000003em;margin-left:0em;margin-right:0.05em;"><span class="pstrut" style="height:2.7em;"></span><span class="sizing reset-size6 size3 mtight"><span class="mord mtight"><span class="mord mathrm mtight">1</span><span class="mord mathrm mtight">1</span></span></span></span></span><span class="vlist-s">​</span></span><span class="vlist-r"><span class="vlist" style="height:0.15em;"></span></span></span></span></span></span></span></span><span class="vlist-s">​</span></span><span class="vlist-r"><span class="vlist" style="height:0.35000000000000003em;"></span></span></span></span><span class="arraycolsep" style="width:0.5em;"></span><span class="arraycolsep" style="width:0.5em;"></span><span class="col-align-c"><span class="vlist-t vlist-t2"><span class="vlist-r"><span class="vlist" style="height:0.8500000000000001em;"><span style="top:-3.01em;"><span class="pstrut" style="height:3em;"></span><span class="mord"><span class="mord"><span class="mord mathit">A</span><span class="msupsub"><span class="vlist-t vlist-t2"><span class="vlist-r"><span class="vlist" style="height:0.30110799999999993em;"><span style="top:-2.5500000000000003em;margin-left:0em;margin-right:0.05em;"><span class="pstrut" style="height:2.7em;"></span><span class="sizing reset-size6 size3 mtight"><span class="mord mtight"><span class="mord mathrm mtight">1</span><span class="mord mathrm mtight">2</span></span></span></span></span><span class="vlist-s">​</span></span><span class="vlist-r"><span class="vlist" style="height:0.15em;"></span></span></span></span></span></span></span></span><span class="vlist-s">​</span></span><span class="vlist-r"><span class="vlist" style="height:0.35000000000000003em;"></span></span></span></span><span class="arraycolsep" style="width:0.5em;"></span><span class="arraycolsep" style="width:0.5em;"></span><span class="col-align-c"><span class="vlist-t vlist-t2"><span class="vlist-r"><span class="vlist" style="height:0.8500000000000001em;"><span style="top:-3.01em;"><span class="pstrut" style="height:3em;"></span><span class="mord"><span class="mord"><span class="mord mathit">A</span><span class="msupsub"><span class="vlist-t vlist-t2"><span class="vlist-r"><span class="vlist" style="height:0.30110799999999993em;"><span style="top:-2.5500000000000003em;margin-left:0em;margin-right:0.05em;"><span class="pstrut" style="height:2.7em;"></span><span class="sizing reset-size6 size3 mtight"><span class="mord mtight"><span class="mord mathrm mtight">1</span><span class="mord mathrm mtight">3</span></span></span></span></span><span class="vlist-s">​</span></span><span class="vlist-r"><span class="vlist" style="height:0.15em;"></span></span></span></span></span></span></span></span><span class="vlist-s">​</span></span><span class="vlist-r"><span class="vlist" style="height:0.35000000000000003em;"></span></span></span></span><span class="arraycolsep" style="width:0.5em;"></span><span class="arraycolsep" style="width:0.5em;"></span><span class="col-align-c"><span class="vlist-t vlist-t2"><span class="vlist-r"><span class="vlist" style="height:0.8500000000000001em;"><span style="top:-3.01em;"><span class="pstrut" style="height:3em;"></span><span class="mord"><span class="mord"><span class="mord mathit">A</span><span class="msupsub"><span class="vlist-t vlist-t2"><span class="vlist-r"><span class="vlist" style="height:0.30110799999999993em;"><span style="top:-2.5500000000000003em;margin-left:0em;margin-right:0.05em;"><span class="pstrut" style="height:2.7em;"></span><span class="sizing reset-size6 size3 mtight"><span class="mord mtight"><span class="mord mathrm mtight">2</span><span class="mord mathrm mtight">1</span></span></span></span></span><span class="vlist-s">​</span></span><span class="vlist-r"><span class="vlist" style="height:0.15em;"></span></span></span></span></span></span></span></span><span class="vlist-s">​</span></span><span class="vlist-r"><span class="vlist" style="height:0.35000000000000003em;"></span></span></span></span><span class="arraycolsep" style="width:0.5em;"></span><span class="arraycolsep" style="width:0.5em;"></span><span class="col-align-c"><span class="vlist-t vlist-t2"><span class="vlist-r"><span class="vlist" style="height:0.8500000000000001em;"><span style="top:-3.01em;"><span class="pstrut" style="height:3em;"></span><span class="mord"><span class="mord"><span class="mord mathit">A</span><span class="msupsub"><span class="vlist-t vlist-t2"><span class="vlist-r"><span class="vlist" style="height:0.30110799999999993em;"><span style="top:-2.5500000000000003em;margin-left:0em;margin-right:0.05em;"><span class="pstrut" style="height:2.7em;"></span><span class="sizing reset-size6 size3 mtight"><span class="mord mtight"><span class="mord mathrm mtight">2</span><span class="mord mathrm mtight">2</span></span></span></span></span><span class="vlist-s">​</span></span><span class="vlist-r"><span class="vlist" style="height:0.15em;"></span></span></span></span></span></span></span></span><span class="vlist-s">​</span></span><span class="vlist-r"><span class="vlist" style="height:0.35000000000000003em;"></span></span></span></span><span class="arraycolsep" style="width:0.5em;"></span><span class="arraycolsep" style="width:0.5em;"></span><span class="col-align-c"><span class="vlist-t vlist-t2"><span class="vlist-r"><span class="vlist" style="height:0.8500000000000001em;"><span style="top:-3.01em;"><span class="pstrut" style="height:3em;"></span><span class="mord"><span class="mord"><span class="mord mathit">A</span><span class="msupsub"><span class="vlist-t vlist-t2"><span class="vlist-r"><span class="vlist" style="height:0.30110799999999993em;"><span style="top:-2.5500000000000003em;margin-left:0em;margin-right:0.05em;"><span class="pstrut" style="height:2.7em;"></span><span class="sizing reset-size6 size3 mtight"><span class="mord mtight"><span class="mord mathrm mtight">2</span><span class="mord mathrm mtight">3</span></span></span></span></span><span class="vlist-s">​</span></span><span class="vlist-r"><span class="vlist" style="height:0.15em;"></span></span></span></span></span></span></span></span><span class="vlist-s">​</span></span><span class="vlist-r"><span class="vlist" style="height:0.35000000000000003em;"></span></span></span></span><span class="arraycolsep" style="width:0.5em;"></span><span class="arraycolsep" style="width:0.5em;"></span><span class="col-align-c"><span class="vlist-t vlist-t2"><span class="vlist-r"><span class="vlist" style="height:0.8500000000000001em;"><span style="top:-3.01em;"><span class="pstrut" style="height:3em;"></span><span class="mord"><span class="mord"><span class="mord mathit">A</span><span class="msupsub"><span class="vlist-t vlist-t2"><span class="vlist-r"><span class="vlist" style="height:0.30110799999999993em;"><span style="top:-2.5500000000000003em;margin-left:0em;margin-right:0.05em;"><span class="pstrut" style="height:2.7em;"></span><span class="sizing reset-size6 size3 mtight"><span class="mord mtight"><span class="mord mathrm mtight">3</span><span class="mord mathrm mtight">1</span></span></span></span></span><span class="vlist-s">​</span></span><span class="vlist-r"><span class="vlist" style="height:0.15em;"></span></span></span></span></span></span></span></span><span class="vlist-s">​</span></span><span class="vlist-r"><span class="vlist" style="height:0.35000000000000003em;"></span></span></span></span><span class="arraycolsep" style="width:0.5em;"></span><span class="arraycolsep" style="width:0.5em;"></span><span class="col-align-c"><span class="vlist-t vlist-t2"><span class="vlist-r"><span class="vlist" style="height:0.8500000000000001em;"><span style="top:-3.01em;"><span class="pstrut" style="height:3em;"></span><span class="mord"><span class="mord"><span class="mord mathit">A</span><span class="msupsub"><span class="vlist-t vlist-t2"><span class="vlist-r"><span class="vlist" style="height:0.30110799999999993em;"><span style="top:-2.5500000000000003em;margin-left:0em;margin-right:0.05em;"><span class="pstrut" style="height:2.7em;"></span><span class="sizing reset-size6 size3 mtight"><span class="mord mtight"><span class="mord mathrm mtight">3</span><span class="mord mathrm mtight">2</span></span></span></span></span><span class="vlist-s">​</span></span><span class="vlist-r"><span class="vlist" style="height:0.15em;"></span></span></span></span></span></span></span></span><span class="vlist-s">​</span></span><span class="vlist-r"><span class="vlist" style="height:0.35000000000000003em;"></span></span></span></span><span class="arraycolsep" style="width:0.5em;"></span><span class="arraycolsep" style="width:0.5em;"></span><span class="col-align-c"><span class="vlist-t vlist-t2"><span class="vlist-r"><span class="vlist" style="height:0.8500000000000001em;"><span style="top:-3.01em;"><span class="pstrut" style="height:3em;"></span><span class="mord"><span class="mord"><span class="mord mathit">A</span><span class="msupsub"><span class="vlist-t vlist-t2"><span class="vlist-r"><span class="vlist" style="height:0.30110799999999993em;"><span style="top:-2.5500000000000003em;margin-left:0em;margin-right:0.05em;"><span class="pstrut" style="height:2.7em;"></span><span class="sizing reset-size6 size3 mtight"><span class="mord mtight"><span class="mord mathrm mtight">3</span><span class="mord mathrm mtight">3</span></span></span></span></span><span class="vlist-s">​</span></span><span class="vlist-r"><span class="vlist" style="height:0.15em;"></span></span></span></span></span></span></span></span><span class="vlist-s">​</span></span><span class="vlist-r"><span class="vlist" style="height:0.35000000000000003em;"></span></span></span></span></span></span><span class="mclose delimcenter" style="top:0em;"><span class="delimsizing size1">]</span></span></span></span></span></span></span></div><div class="equation_number"><span></span></div></div><p>I first encountered this issue when implementing the <span class="katex"><span class="katex-mathml"><math><semantics><mrow><mrow><mi mathvariant="normal">v</mi><mi mathvariant="normal">e</mi><mi mathvariant="normal">c</mi></mrow><mo>(</mo><mo>⋅</mo><mo>)</mo></mrow><annotation encoding="application/x-tex">\mathrm{vec}(\cdot)</annotation></semantics></math></span><span class="katex-html" aria-hidden="true"><span class="strut" style="height:0.75em;"></span><span class="strut bottom" style="height:1em;vertical-align:-0.25em;"></span><span class="base"><span class="mord"><span class="mord mathrm" style="margin-right:0.01389em;">v</span><span class="mord mathrm">e</span><span class="mord mathrm">c</span></span><span class="mopen">(</span><span class="mord">⋅</span><span class="mclose">)</span></span></span></span> operation, which converts a matrix to a column vector by stack all its columns together. In MATLAB, this operation can be simply implemented using <code>reshape(A, [], 1)</code> (or <code>A(:)</code>). In NumPy, one must specify <code>order='F'</code> when calling <code>reshape</code> to enforce MATLAB-like index ordering.</p>
+<div class="environment compare"><div class="environment column"><p><strong>MATLAB:</strong></p>
+<pre><code class="language-MATLAB">A = [<span class="hljs-number">1</span> <span class="hljs-number">2</span>;<span class="hljs-number">3</span> <span class="hljs-number">4</span>];
+v = [<span class="hljs-number">1</span> <span class="hljs-number">2</span> <span class="hljs-number">3</span> <span class="hljs-number">4</span> <span class="hljs-number">5</span> <span class="hljs-number">6</span>];
+
+<span class="hljs-comment">% Reshaping</span>
+<span class="hljs-built_in">reshape</span>(v, <span class="hljs-number">2</span>, <span class="hljs-number">3</span>);
+<span class="hljs-comment">% will produce</span>
+<span class="hljs-comment">% [ 1 3 5;</span>
+<span class="hljs-comment">%   2 4 5 ]</span>
+
+<span class="hljs-comment">% Stack all columns of A together.</span>
+a = A(:);
+</code></pre>
+</div><div class="environment column"><p><strong>Python:</strong></p>
+<pre><code class="language-Python">A = np.array([[<span class="hljs-number">1.</span>, <span class="hljs-number">2.</span>], [<span class="hljs-number">3.</span>, <span class="hljs-number">4.</span>]])
+v = np.array([[<span class="hljs-number">1.</span>, <span class="hljs-number">2.</span>, <span class="hljs-number">3.</span>, <span class="hljs-number">4.</span>, <span class="hljs-number">5.</span>, <span class="hljs-number">6.</span>]])
+
+<span class="hljs-comment"># Reshaping</span>
+v.reshape((<span class="hljs-number">2</span>, <span class="hljs-number">3</span>))
+<span class="hljs-comment"># will produce</span>
+<span class="hljs-comment"># [[1, 2, 3],</span>
+<span class="hljs-comment">#  [4, 5, 6]]</span>
+
+<span class="hljs-comment"># Stack all columns of A together</span>
+a = A.reshape((<span class="hljs-number">-1</span>,), order=<span class="hljs-string">'F'</span>)
+</code></pre>
+</div></div><h3>There is no linear indexing</h3>
+<p>In MATLAB, one can access a single element in a multidimensional array with a single index. This indexing scheme is called linear indexing<sup class="footnote-ref"><a href="https://research.wmz.ninja/articles/2018/10/notes-on-migrating-doa-tools-from-matlab-to-python.html#fn2" id="fnref2">[2]</a></sup>. For instance, if <span class="katex"><span class="katex-mathml"><math><semantics><mrow><mrow><mi mathvariant="bold">A</mi></mrow></mrow><annotation encoding="application/x-tex">\mathbf{A}</annotation></semantics></math></span><span class="katex-html" aria-hidden="true"><span class="strut" style="height:0.68611em;"></span><span class="strut bottom" style="height:0.68611em;vertical-align:0em;"></span><span class="base"><span class="mord"><span class="mord mathbf">A</span></span></span></span></span> is a <span class="katex"><span class="katex-mathml"><math><semantics><mrow><mn>3</mn><mo>×</mo><mn>3</mn></mrow><annotation encoding="application/x-tex">3\times3</annotation></semantics></math></span><span class="katex-html" aria-hidden="true"><span class="strut" style="height:0.64444em;"></span><span class="strut bottom" style="height:0.72777em;vertical-align:-0.08333em;"></span><span class="base"><span class="mord mathrm">3</span><span class="mbin">×</span><span class="mord mathrm">3</span></span></span></span> matrix, <code>A(8)</code> will refer to <code>A(2,3)</code>, or equivalently the 8-th element in <code>A(:)</code> (remember that MATLAB uses column-major order). NumPy, however, does not support linear indexing. In general, linear indexing is not needed in NumPy. If you really want to do it, you can mimic linear indexing by utilizing <code>reshape</code>.</p>
+<div class="environment compare"><div class="environment column"><p><strong>MATLAB:</strong></p>
+<pre><code class="language-MATLAB">A = [<span class="hljs-number">11</span> <span class="hljs-number">12</span> <span class="hljs-number">13</span>;
+     <span class="hljs-number">21</span> <span class="hljs-number">22</span> <span class="hljs-number">23</span>;
+     <span class="hljs-number">31</span> <span class="hljs-number">32</span> <span class="hljs-number">33</span>];
+
+<span class="hljs-comment">% Linear indexing</span>
+<span class="hljs-built_in">disp</span>(A(<span class="hljs-number">3</span>)); <span class="hljs-comment">% 31</span>
+<span class="hljs-built_in">disp</span>(A(<span class="hljs-number">8</span>)); <span class="hljs-comment">% 23</span>
+
+<span class="hljs-comment">% Linear indexing of multiple elements</span>
+<span class="hljs-built_in">disp</span>(A([<span class="hljs-number">2</span> <span class="hljs-number">4</span>])); <span class="hljs-comment">% [21 12]</span>
+
+</code></pre>
+</div><div class="environment column"><p><strong>Python:</strong></p>
+<pre><code class="language-Python">A = np.array([[<span class="hljs-number">11</span>, <span class="hljs-number">12</span>, <span class="hljs-number">13</span>],
+              [<span class="hljs-number">21</span>, <span class="hljs-number">22</span>, <span class="hljs-number">23</span>],
+              [<span class="hljs-number">31</span>, <span class="hljs-number">32</span>, <span class="hljs-number">33</span>]])
+
+<span class="hljs-comment"># No linear indexing!</span>
+print(A[<span class="hljs-number">1</span>]) <span class="hljs-comment"># [21, 22, 23]</span>
+print(A[<span class="hljs-number">7</span>]) <span class="hljs-comment"># Error</span>
+
+<span class="hljs-comment"># Mimic linear indexing</span>
+print(A.reshape((<span class="hljs-number">-1</span>,), order=<span class="hljs-string">'F'</span>)[[<span class="hljs-number">1</span>, <span class="hljs-number">3</span>]])
+<span class="hljs-comment"># [21, 12]</span>
+</code></pre>
+</div></div><h3>There exist 1D arrays and 0D arrays</h3>
+<p>MATLAB is designed to manipulate matrices, and every matrix variable is at least 2D (<code>size(0.5)</code> will return <code>[1 1]</code>). However, in NumPy, there are 1D arrays and even 0D arrays. Using 1D arrays is perfectly fine in NumPy. However, you should be careful when mixing 1D arrays and 2D matrices. Another thing to keep in mind is that the transpose operation in NumPy is defined for general multidimensional arrays. Therefore, transposing a 1-D array in NumPy still produces a 1-D array.</p>
+<div class="environment compare"><div class="environment column"><p><strong>MATLAB:</strong></p>
+<pre><code class="language-MATLAB"><span class="hljs-comment">% A scalar is a 1x1 matrix in MATLAB.</span>
+x = <span class="hljs-number">1</span>;
+<span class="hljs-built_in">disp</span>(<span class="hljs-built_in">ndims</span>(x)); <span class="hljs-comment">% 2</span>
+<span class="hljs-built_in">disp</span>(<span class="hljs-built_in">size</span>(x)); <span class="hljs-comment">% [1 1]</span>
+
+
+<span class="hljs-comment">% A row vector is a 1xn matrix in MATLAB.</span>
+y = [<span class="hljs-number">1</span> <span class="hljs-number">1</span> <span class="hljs-number">2</span> <span class="hljs-number">3</span> <span class="hljs-number">5</span>];
+<span class="hljs-built_in">disp</span>(<span class="hljs-built_in">ndims</span>(y)); <span class="hljs-comment">% 2</span>
+<span class="hljs-built_in">disp</span>(<span class="hljs-built_in">size</span>(y)); <span class="hljs-comment">% [1 5]</span>
+
+<span class="hljs-comment">% A 2x2 matrix.</span>
+A = [<span class="hljs-number">1</span>, <span class="hljs-number">4</span>; <span class="hljs-number">2</span>, <span class="hljs-number">3</span>];
+<span class="hljs-built_in">disp</span>(<span class="hljs-built_in">ndims</span>(A)); <span class="hljs-comment">% 2</span>
+<span class="hljs-built_in">disp</span>(<span class="hljs-built_in">size</span>(A)); <span class="hljs-comment">% [2 2]</span>
+
+<span class="hljs-comment">% Transposing a row vector results in</span>
+<span class="hljs-comment">% a column vector.</span>
+z = transpose(y);
+<span class="hljs-built_in">disp</span>(<span class="hljs-built_in">ndims</span>(z)); <span class="hljs-comment">% 2</span>
+<span class="hljs-built_in">disp</span>(<span class="hljs-built_in">size</span>(z)); <span class="hljs-comment">% [5 1]</span>
+</code></pre>
+</div><div class="environment column"><p><strong>Python:</strong></p>
+<pre><code class="language-Python"><span class="hljs-comment"># You can wrap a scalar.</span>
+x = np.array(<span class="hljs-number">1.</span>)
+<span class="hljs-comment"># You get an 0D array with an empty shape.</span>
+print(x.ndim) <span class="hljs-comment"># 0</span>
+print(x.shape) <span class="hljs-comment"># ()</span>
+
+<span class="hljs-comment"># Create a 1D array.</span>
+y = np.array([<span class="hljs-number">1.</span>, <span class="hljs-number">1.</span>, <span class="hljs-number">2.</span>, <span class="hljs-number">3.</span>, <span class="hljs-number">5.</span>])
+print(y.ndim) <span class="hljs-comment"># 1</span>
+print(y.shape) <span class="hljs-comment"># (5,)</span>
+
+<span class="hljs-comment"># A 2x2 matrix.</span>
+A = np.array([[<span class="hljs-number">1.</span>, <span class="hljs-number">4.</span>], [<span class="hljs-number">2.</span>, <span class="hljs-number">3.</span>]]) 
+print(A.ndim) <span class="hljs-comment"># 2</span>
+print(A.shape) <span class="hljs-comment"># (2, 2)</span>
+
+<span class="hljs-comment"># Transposing a 1D array results in</span>
+<span class="hljs-comment"># a 1D array</span>
+z = y.T
+print(z.ndim) <span class="hljs-comment"># 1</span>
+print(z.shape) <span class="hljs-comment"># (5,)</span>
+</code></pre>
+</div></div><h3>Singleton dimensions can be automatically removed</h3>
+<p>In MATLAB, when extracting a row, a column, or a slice from a multidimensional array, singleton dimensions are not automatically removed and sometimes you need to use <code>squeeze()</code><sup class="footnote-ref"><a href="https://research.wmz.ninja/articles/2018/10/notes-on-migrating-doa-tools-from-matlab-to-python.html#fn3" id="fnref3">[3]</a></sup> to remove these singleton dimensions. Common reduction operations such as <code>sum()</code> and <code>mean()</code> follows a similar behavior.</p>
+<p>In NumPy, singleton dimensions can be automatically removed, saving you from extra calls to <code>np.squeeze()</code>. For common reduction operations, you can even control this behavior with the <code>keepdims</code> option. However, you should be careful when extracting columns for a matrix due as <code>A[:, 0]</code> will return the first column as a 1D array.</p>
+<div class="environment compare"><div class="environment column"><p><strong>MATLAB:</strong></p>
+<pre><code class="language-MATLAB">A = [<span class="hljs-number">1</span> <span class="hljs-number">4</span>;<span class="hljs-number">2</span> <span class="hljs-number">3</span>];
+<span class="hljs-comment">% Retrieves the first column.</span>
+v = A(:,<span class="hljs-number">1</span>);
+<span class="hljs-built_in">disp</span>(<span class="hljs-built_in">size</span>(v)); <span class="hljs-comment">% [2 1]</span>
+
+
+
+
+
+<span class="hljs-comment">% Extract a matrix from a tensor.</span>
+T = <span class="hljs-built_in">ones</span>(<span class="hljs-number">3</span>, <span class="hljs-number">4</span>, <span class="hljs-number">5</span>);
+t = <span class="hljs-built_in">squeeze</span>(T(<span class="hljs-number">1</span>,:,:));
+<span class="hljs-built_in">disp</span>(<span class="hljs-built_in">size</span>(t)); <span class="hljs-comment">% [4 5]</span>
+
+<span class="hljs-comment">% Sum each row</span>
+A = <span class="hljs-built_in">repmat</span>([<span class="hljs-number">1</span> <span class="hljs-number">2</span> <span class="hljs-number">3</span>], [<span class="hljs-number">3</span> <span class="hljs-number">1</span>]);
+<span class="hljs-built_in">disp</span>(sum(A, <span class="hljs-number">2</span>)); <span class="hljs-comment">% [6; 6; 6]</span>
+
+
+</code></pre>
+</div><div class="environment column"><p><strong>Python:</strong></p>
+<pre><code class="language-Python">A = np.array([[<span class="hljs-number">1.</span>, <span class="hljs-number">4.</span>], [<span class="hljs-number">2.</span>, <span class="hljs-number">3.</span>]])
+<span class="hljs-comment"># Retrieves the first column as a 1D vector.</span>
+v = A[:, <span class="hljs-number">0</span>]
+print(v.shape) <span class="hljs-comment"># (2,)</span>
+<span class="hljs-comment"># Retrieves the first column as a 2D</span>
+<span class="hljs-comment"># column vector.</span>
+v = A[:, <span class="hljs-number">0</span>, np.newaxis]
+print(v.shape) <span class="hljs-comment"># (2, 1)</span>
+
+<span class="hljs-comment"># Extract a matrix from a tensor.</span>
+T = np.ones((<span class="hljs-number">3</span>, <span class="hljs-number">4</span>, <span class="hljs-number">5</span>))
+t = T[<span class="hljs-number">1</span>, :, :]
+print(t.shape) <span class="hljs-comment"># (4, 5)</span>
+
+<span class="hljs-comment"># Sum each row</span>
+A = np.tile([<span class="hljs-number">1</span>, <span class="hljs-number">2</span>, <span class="hljs-number">3</span>], (<span class="hljs-number">3</span>, <span class="hljs-number">1</span>))
+print(np.sum(A, axis=<span class="hljs-number">1</span>)) <span class="hljs-comment"># [6, 6, 6]</span>
+print(np.sum(A, axis=<span class="hljs-number">1</span>, keepdims=<span class="hljs-keyword">True</span>))
+<span class="hljs-comment"># [[6], [6], [6]]</span>
+</code></pre>
+</div></div><h3>You need to explicitly copy an array if you need to</h3>
+<p>In MATLAB, variables are passed by values. You can simply copy a multidimensional array with the assignment operator, <code>=</code>. In addition, various operations including slicing and transpose always creates a copy. For instance, <code>A(:,1)</code> creates a copy of the first column of <code>A</code>.</p>
+<p>In Python, everything is an object and objects are passed by reference. Therefore, multiple variables can refer to the same object. If this object is mutable, changes will be visible to all the variables referencing it. You need to explicitly make a copy if you need to. In NumPy, basic slicing and transpose creates a view instead of copy, which shares the underlying data storage with the original array<sup class="footnote-ref"><a href="https://research.wmz.ninja/articles/2018/10/notes-on-migrating-doa-tools-from-matlab-to-python.html#fn4" id="fnref4">[4]</a></sup>. If you need a copy, you need to explicitly invoke the <code>copy()</code> method.</p>
+<div class="environment compare"><div class="environment column"><p><strong>MATLAB:</strong></p>
+<pre><code class="language-MATLAB">x = [<span class="hljs-number">1</span> <span class="hljs-number">2</span> <span class="hljs-number">3</span>];
+<span class="hljs-comment">% Create a copy of x.</span>
+y = x;
+
+A = [<span class="hljs-number">1</span> <span class="hljs-number">4</span>;<span class="hljs-number">2</span> <span class="hljs-number">3</span>];
+<span class="hljs-comment">% Get the first row and modify it.</span>
+v = A(<span class="hljs-number">1</span>,:);
+v(<span class="hljs-number">1</span>) = <span class="hljs-number">10</span>;
+<span class="hljs-comment">% Changing v does not affect A.</span>
+<span class="hljs-built_in">disp</span>(A); <span class="hljs-comment">% [1 4;2 3]</span>
+
+A = [<span class="hljs-number">1</span> <span class="hljs-number">4</span>;<span class="hljs-number">2</span> <span class="hljs-number">3</span>];
+<span class="hljs-comment">% Get the transpose and modify it.</span>
+B = transpose(A);
+<span class="hljs-comment">% Changing B does not affect A.</span>
+B(<span class="hljs-number">1</span>,<span class="hljs-number">1</span>) = <span class="hljs-number">10</span>;
+<span class="hljs-built_in">disp</span>(B); <span class="hljs-comment">% [10 2;4 3]</span>
+<span class="hljs-built_in">disp</span>(A); <span class="hljs-comment">% [1 4;2 3]</span>
+</code></pre>
+</div><div class="environment column"><p><strong>Python:</strong></p>
+<pre><code class="language-Python">x = np.array([<span class="hljs-number">1.</span>, <span class="hljs-number">2.</span>, <span class="hljs-number">3.</span>])
+<span class="hljs-comment"># Create a copy of x.</span>
+y = x.copy()
+
+A = np.array([[<span class="hljs-number">1.</span>, <span class="hljs-number">4.</span>], [<span class="hljs-number">2.</span>, <span class="hljs-number">3.</span>]])
+<span class="hljs-comment"># Get the first row and modify it.</span>
+v = A[<span class="hljs-number">0</span>, :]
+v[<span class="hljs-number">0</span>] = <span class="hljs-number">10.</span>
+<span class="hljs-comment"># Changing v affects A.</span>
+print(A) <span class="hljs-comment"># [[10., 4.], [2., 3.]]</span>
+
+A = np.array([[<span class="hljs-number">1.</span>, <span class="hljs-number">4.</span>], [<span class="hljs-number">2.</span>, <span class="hljs-number">3.</span>]])
+<span class="hljs-comment"># Get the transpose and modify it.</span>
+B = A.T
+<span class="hljs-comment"># Changing B affects A.</span>
+B[<span class="hljs-number">0</span>, <span class="hljs-number">0</span>] = <span class="hljs-number">10.</span>
+print(B) <span class="hljs-comment"># [[10., 2.]. [4., 3.]]</span>
+print(A) <span class="hljs-comment"># [[10., 4.]. [2., 3.]]</span>
+</code></pre>
+</div></div><h3>You will need <code>np.ix_</code> when extract submatrices</h3>
+<p>Suppose we have two vectors, <code>row_ids</code> and <code>col_ids</code>, where <code>row_ids</code> is a list of row indices and <code>col_ids</code> is a list of column indices. We want to extract the submatrix specified by <code>row_ids</code> and <code>col_ids</code> from a matrix, <code>A</code>. In MATLAB, this can be simply done with <code>A(row_ids, col_ids)</code>. However, if you try it in NumPy, you will get unexpected results and even errors. In NumPy, we need to use <code>np.ix_</code>.</p>
+<div class="environment compare"><div class="environment column"><p><strong>MATLAB:</strong></p>
+<pre><code class="language-MATLAB">A = <span class="hljs-built_in">rand</span>(<span class="hljs-number">10</span>, <span class="hljs-number">10</span>);
+row_ids = [<span class="hljs-number">1</span> <span class="hljs-number">2</span> <span class="hljs-number">9</span>];
+col_ids = [<span class="hljs-number">4</span> <span class="hljs-number">7</span>];
+B = A(row_ids, col_ids);
+<span class="hljs-built_in">disp</span>(<span class="hljs-built_in">size</span>(B)); <span class="hljs-comment">% [3 2]</span>
+<span class="hljs-comment">% B consists of</span>
+<span class="hljs-comment">% A(1,4) A(1,7)</span>
+<span class="hljs-comment">% A(2,4) A(2,7)</span>
+<span class="hljs-comment">% A(9,4) A(9,7)</span>
+</code></pre>
+</div><div class="environment column"><p><strong>Python:</strong></p>
+<pre><code class="language-Python">A = np.random.rand(<span class="hljs-number">10</span>, <span class="hljs-number">10</span>)
+row_ids = [<span class="hljs-number">0</span>, <span class="hljs-number">1</span>, <span class="hljs-number">8</span>]
+col_ids = [<span class="hljs-number">3</span>, <span class="hljs-number">6</span>]
+B = A[np.ix_(row_ids, col_ids)]
+print(B.shape) <span class="hljs-comment"># (3, 2)</span>
+<span class="hljs-comment"># B consists of</span>
+<span class="hljs-comment"># A[0,3] A[0,6]</span>
+<span class="hljs-comment"># A[1,3] A[1,6]</span>
+<span class="hljs-comment"># A[8,3] A[8,6]</span>
+</code></pre>
+</div></div><h3>You can get MATLAB-like concatenation with <code>np.block</code></h3>
+<p>In MATLAB, you can easily concatenate many smaller matrices into a bigger one with <code>[]</code>. In NumPy, you can use <code>np.block()</code> to perform similar operations.</p>
+<div class="environment compare"><div class="environment column"><p><strong>MATLAB:</strong></p>
+<pre><code class="language-MATLAB">A = [<span class="hljs-number">1</span> <span class="hljs-number">3</span>;<span class="hljs-number">2</span> <span class="hljs-number">4</span>];
+v1 = [<span class="hljs-number">-1</span> <span class="hljs-number">-1</span>];
+v2 = [<span class="hljs-number">1</span>; <span class="hljs-number">1</span>];
+S = [<span class="hljs-number">9</span> v1;v2 A];
+<span class="hljs-built_in">disp</span>(S);
+<span class="hljs-comment">% [9 -1 -1</span>
+<span class="hljs-comment">%  1  1  3</span>
+<span class="hljs-comment">%  1  2  4]</span>
+</code></pre>
+</div><div class="environment column"><p><strong>Python:</strong></p>
+<pre><code class="language-Python">A = np.array([[<span class="hljs-number">1.</span>, <span class="hljs-number">3.</span>], [<span class="hljs-number">2.</span>, <span class="hljs-number">4.</span>]])
+v1 = np.array([[<span class="hljs-number">-1.</span>, <span class="hljs-number">-1.</span>]])
+v2 = np.array([[<span class="hljs-number">1.</span>], [<span class="hljs-number">1.</span>]])
+S = np.block([[<span class="hljs-number">9.</span>, v1], [v2, A]])
+print(S)
+<span class="hljs-comment"># [[ 9. -1. -1.]</span>
+<span class="hljs-comment">#  [ 1.  1.  3.]</span>
+<span class="hljs-comment">#  [ 1.  2.  4.]]</span>
+</code></pre>
+</div></div><h2>Linear algebra</h2>
+<p>In MATLAB, the linear algebra routines are globally available. In Python, these routines can by found under <code>np.linalg</code>. Some other matrix functions such as <code>sqrtm()</code> can be found under <code>scipy.linalg</code><sup class="footnote-ref"><a href="https://research.wmz.ninja/articles/2018/10/notes-on-migrating-doa-tools-from-matlab-to-python.html#fn5" id="fnref5">[5]</a></sup>.</p>
+<h3>You cannot use apostrophe to obtain the conjugate transpose</h3>
+<p>In MATLAB, the conjugate transpose (or Hermitian) of a matrix, <code>A</code>, can be simply expressed with <code>A'</code> (a single apostrophe means conjugate transpose, while <code>.'</code> means normal transpose). In NumPy, there is no such shortcut.</p>
+<div class="environment compare"><div class="environment column"><p><strong>MATLAB:</strong></p>
+<pre><code class="language-MATLAB"><span class="hljs-comment">% Compute A^H A</span>
+B = A' * A;
+</code></pre>
+</div><div class="environment column"><p><strong>Python:</strong></p>
+<pre><code class="language-Python"><span class="hljs-comment"># Compute A^H A</span>
+B = A.conj().T @ A
+</code></pre>
+</div></div><h3>You can use <code>eigh</code> instead of <code>eig</code> for Hermitian matrices</h3>
+<p>In MATLAB, the <code>eig</code> function is design for general eigendecomposition problems. Therefore, if the input matrix is expected to be Hermitian, but actually not due to numerical errors, <code>eig</code> will use the algorithms for non-Hermitian matrices, which may produce undesired results. Hence, if the input matrix, <code>A</code>, is expected to be Hermitian, we usually pass in <code>0.5*(A + A')</code> instead of <code>A</code>. For more details, you can check my previous article <a href="https://research.wmz.ninja/articles/2018/08/symmetrize-the-input-matrix-before-eigendecomposition.html">here</a>).</p>
+<p>In NumPy, there is no such problem because <code>np.linalg</code> provides a function named <code>eigh</code>, which is designed for Hermitian matrices.</p>
+<div class="environment compare"><div class="environment column"><p><strong>MATLAB:</strong></p>
+<pre><code class="language-MATLAB"><span class="hljs-comment">% Even if A is supposed to be Hermitian, we</span>
+<span class="hljs-comment">% need to force it to be numerically Hermitian.</span>
+A = <span class="hljs-number">0.5</span> * (A + A');
+[E, V] = eig(A, <span class="hljs-string">'vector'</span>);
+</code></pre>
+</div><div class="environment column"><p><strong>Python:</strong></p>
+<pre><code class="language-Python"><span class="hljs-comment"># We can use `eigh` instead of `eig`, which will</span>
+<span class="hljs-comment"># only use the upper (or lower) triangular part.</span>
+v, E = np.linalg.eigh(A)
+
+</code></pre>
+</div></div><h3>Use <code>np.linalg.lstsq</code> to implement <code>mldivide</code> and <code>mrdivide</code></h3>
+<p>MATLAB overloads <code>\</code> and <code>/</code> with matrix right division, <code>mrdivide</code>, and matrix left division, <code>mldivide</code>, respectively<sup class="footnote-ref"><a href="https://research.wmz.ninja/articles/2018/10/notes-on-migrating-doa-tools-from-matlab-to-python.html#fn6" id="fnref6">[6]</a></sup>. In NumPy, <code>\</code> is not an operator and <code>/</code> means element-wise division. You can simply use <code>np.linalg.lstsq</code> to implement <code>mldivide</code> and <code>mrdivide</code> (or <code>np.linalg.solve</code> for the invertible case).</p>
+<div class="environment compare"><div class="environment column"><p><strong>MATLAB:</strong></p>
+<pre><code class="language-MATLAB"><span class="hljs-comment">% Evaluate mrdivide.</span>
+A / B 
+<span class="hljs-comment">% Evaluate mldivide.</span>
+A \ B
+<span class="hljs-comment">% Evaluate A B^{-1}.</span>
+A / B 
+<span class="hljs-comment">% Evaluate A^{-1} B.</span>
+A \ B
+</code></pre>
+</div><div class="environment column"><p><strong>Python:</strong></p>
+<pre><code class="language-Python"><span class="hljs-comment"># Evaluate mrdivide.</span>
+np.linalg.lstsq(B.T, A.T)[<span class="hljs-number">0</span>].T
+<span class="hljs-comment"># Evaluate mldivide.</span>
+np.linalg.lstsq(A, B)
+<span class="hljs-comment"># Evaluate A B^{-1}.</span>
+np.linalg.solve(B.T, A.T).T
+<span class="hljs-comment"># Evaluate A^{-1} B.</span>
+np.linalg.solve(A, B)
+</code></pre>
+</div></div><h2>Signal processing</h2>
+<p>MATLAB provides a rich set of functions for signal processing related applications (e.g., spectral analysis, filtering, filter design etc.). In Python, relevant functions can be found under <code>scipy.signal</code><sup class="footnote-ref"><a href="https://research.wmz.ninja/articles/2018/10/notes-on-migrating-doa-tools-from-matlab-to-python.html#fn7" id="fnref7">[7]</a></sup></p>
+<h3>SciPy has <code>find_peaks</code>, but does not have <code>imregionalmax</code></h3>
+<p>When implementing spectrum-based direction-of-arrival estimators, one needs to find the top peaks in the resulting spectrum. In MATLAB, <code>findpeaks()</code> can find peaks in a 1D spectrum and <code>imregionalmax()</code> can identify local maximas in a 2D spectrum. In Python, SciPy recently added <code>find_peaks()</code> under <code>scipy.signal</code>, which is similar to MATLAB's <code>findpeaks()</code>. However, there is no function similar to MATLAB's <code>imregionalmax()</code>.</p>
+<div class="environment compare"><div class="environment column"><p><strong>MATLAB:</strong></p>
+<pre><code class="language-MATLAB"><span class="hljs-comment">% Find peaks of a sine wave.</span>
+x = <span class="hljs-built_in">sin</span>(<span class="hljs-built_in">linspace</span>(<span class="hljs-number">-8</span>, <span class="hljs-number">8</span>, <span class="hljs-number">100</span>));
+[peaks, indices] = findpeaks(x);
+
+
+
+</code></pre>
+</div><div class="environment column"><p><strong>Python:</strong></p>
+<pre><code class="language-Python"><span class="hljs-keyword">from</span> scipy.signal <span class="hljs-keyword">import</span> find_peaks
+
+<span class="hljs-comment"># Find peaks of a sine wave.</span>
+x = np.sin(np.linspace(<span class="hljs-number">-8</span>, <span class="hljs-number">8</span>, <span class="hljs-number">100</span>))
+indices, props = find_peaks(x)
+peaks = x[indices] <span class="hljs-comment"># Get peak values</span>
+</code></pre>
+</div></div><h2>Optimization</h2>
+<p>Optimization problems exist in various engineering applications. <em>doa-tools</em> implemented both the maximum-likelihood based estimators and sparsity-based estimators. The former require a solver that is capable of solving constrained non-convex problems, while the latter require a solver that can efficiently solve <span class="katex"><span class="katex-mathml"><math><semantics><mrow><msub><mi>l</mi><mn>1</mn></msub></mrow><annotation encoding="application/x-tex">l_1</annotation></semantics></math></span><span class="katex-html" aria-hidden="true"><span class="strut" style="height:0.69444em;"></span><span class="strut bottom" style="height:0.84444em;vertical-align:-0.15em;"></span><span class="base"><span class="mord"><span class="mord mathit" style="margin-right:0.01968em;">l</span><span class="msupsub"><span class="vlist-t vlist-t2"><span class="vlist-r"><span class="vlist" style="height:0.30110799999999993em;"><span style="top:-2.5500000000000003em;margin-left:-0.01968em;margin-right:0.05em;"><span class="pstrut" style="height:2.7em;"></span><span class="sizing reset-size6 size3 mtight"><span class="mord mathrm mtight">1</span></span></span></span><span class="vlist-s">​</span></span><span class="vlist-r"><span class="vlist" style="height:0.15em;"></span></span></span></span></span></span></span></span>-regularized least squares problems. MATLAB has built-in functions to solve various optimization problems, while in Python, various solvers are available from third-party libraries.</p>
+<h3>Use <code>scipy.optimize.minimize</code> for general constrained non-convex problems</h3>
+<p>In MATLAB, sub-optimal solutions to constrained non-convex problems can be obtained with <code>fmincon()</code>. In Python, a similar function <code>minimize()</code> is provided by <code>scipy.optimize</code>.</p>
+<div class="environment compare"><div class="environment column"><p><strong>MATLAB:</strong></p>
+<pre><code class="language-MATLAB">f = @(x) x^<span class="hljs-number">4</span> - <span class="hljs-number">3</span>*x^<span class="hljs-number">2</span> + <span class="hljs-number">1</span>;
+<span class="hljs-comment">% Minimize f subject to x &gt;= -1.</span>
+<span class="hljs-comment">% Starting from x = 0.5.</span>
+x_opt = fmincon(...
+  f, <span class="hljs-number">0.5</span>, [], [], [], [], <span class="hljs-number">-1</span>, <span class="hljs-built_in">inf</span>...
+);
+print(x_opt); <span class="hljs-comment">% 1.2247</span>
+</code></pre>
+</div><div class="environment column"><p><strong>Python:</strong></p>
+<pre><code class="language-Python"><span class="hljs-keyword">from</span> scipy.optimize <span class="hljs-keyword">import</span> minimize
+
+<span class="hljs-comment"># Minimize f subject to x &gt;= -1.</span>
+<span class="hljs-comment"># Starting from x = 0.5.</span>
+f = <span class="hljs-keyword">lambda</span> x: x**<span class="hljs-number">4</span> - <span class="hljs-number">3</span>*x**<span class="hljs-number">2</span> + <span class="hljs-number">1</span>
+res = minimize(f, <span class="hljs-number">0.5</span>, bounds=[(<span class="hljs-number">-1</span>, np.inf)])
+print(<span class="hljs-string">'{0:.4f}'</span>.format(res.x[<span class="hljs-number">0</span>])) <span class="hljs-comment"># 1.2247 </span>
+</code></pre>
+</div></div><h3>The Python version of CVX is CVXPY</h3>
+<p><a href="http://cvxr.com/">CVX</a> is a modeling framework for convex programming problems designed for MATLAB. The Python version is available and is named <a href="http://www.cvxpy.org/">CVXPY</a>. CVXPY's syntax is very similar to that of the CVX. One advantage of CVXPY is that it support defining parameters, allowing the creation of reusable optimization problems.</p>
+<blockquote>
+<p><strong>Note:</strong> When installing CVXPY under Windows, you may encounter errors when installing <a href="https://github.com/embotech/ecos-python">ECOS</a>. To fix this issue, manually install the latest version of ECOS. Check the discussion <a href="https://github.com/embotech/ecos-python/issues/10#issuecomment-427241048">here</a>.</p>
+</blockquote>
+<div class="environment compare"><div class="environment column"><p><strong>MATLAB:</strong></p>
+<pre><code class="language-MATLAB">
+
+m = <span class="hljs-number">4</span>;
+n = <span class="hljs-number">10</span>;
+rng(<span class="hljs-number">42</span>);
+A = <span class="hljs-built_in">rand</span>(m, n);
+b = <span class="hljs-built_in">rand</span>(m, <span class="hljs-number">1</span>);
+
+
+<span class="hljs-comment">% l1-regularized least squares.</span>
+cvx_begin
+  variable x(n, <span class="hljs-number">1</span>)
+  minimize sum_square(A*x - b) + norm(x, <span class="hljs-number">1</span>)
+  subject to
+    x &gt;= <span class="hljs-number">0</span>
+cvx_end
+
+
+<span class="hljs-built_in">disp</span>(x);
+</code></pre>
+</div><div class="environment column"><p><strong>Python:</strong></p>
+<pre><code class="language-Python"><span class="hljs-keyword">import</span> cvxpy <span class="hljs-keyword">as</span> cvx
+
+m = <span class="hljs-number">4</span>
+n = <span class="hljs-number">10</span>
+np.random.seed(<span class="hljs-number">42</span>)
+<span class="hljs-comment"># MATLAB uses column-major order.</span>
+<span class="hljs-comment"># Ensure A is the same under the same seed.</span>
+A = np.random.rand(n, m).T
+b = np.random.rand(m, <span class="hljs-number">1</span>)
+<span class="hljs-comment"># l1-regularized least squares.</span>
+x = cvx.Variable((n, <span class="hljs-number">1</span>))
+objective = cvx.Minimize(
+    cvx.sum_squares(cvx.matmul(A, x) - b)
+    + cvx.norm1(x)
+)
+constraints = [x &gt;= <span class="hljs-number">0</span>]
+problem = cvx.Problem(objective, constraints)
+result = problem.solve()
+print(x.value)
+</code></pre>
+</div></div><h2>Plotting</h2>
+<p>MATLAB provides a rich set of plotting options. In Python, similar functionalities are provided by <a href="https://matplotlib.org/">Matplotlib</a>. In the code examples, we assume that <code>matplotlib.pyplot</code> has been imported as <code>plt</code>.</p>
+<h3><code>hold on</code> is no longer needed</h3>
+<p>In MATLAB, <code>hold on</code> is required to prevent new plots from deleting existing plots. With Matplotlib, this command is not needed<sup class="footnote-ref"><a href="https://research.wmz.ninja/articles/2018/10/notes-on-migrating-doa-tools-from-matlab-to-python.html#fn8" id="fnref8">[8]</a></sup>.</p>
+<div class="environment compare"><div class="environment column"><p><strong>MATLAB:</strong></p>
+<pre><code class="language-MATLAB"><span class="hljs-comment">% Three line plots in the same figure.</span>
+figure;
+plot(<span class="hljs-built_in">rand</span>(<span class="hljs-number">50</span>, <span class="hljs-number">1</span>)); hold on;
+plot(<span class="hljs-built_in">rand</span>(<span class="hljs-number">50</span>, <span class="hljs-number">1</span>) + <span class="hljs-number">1</span>); hold on;
+plot(<span class="hljs-built_in">rand</span>(<span class="hljs-number">50</span>, <span class="hljs-number">1</span>) + <span class="hljs-number">2</span>); hold off;
+
+</code></pre>
+</div><div class="environment column"><p><strong>Python:</strong></p>
+<pre><code class="language-Python"><span class="hljs-comment"># Three line plots in the same figure.</span>
+plt.figure()
+plt.plot(np.random.rand(<span class="hljs-number">50</span>, <span class="hljs-number">1</span>))
+plt.plot(np.random.rand(<span class="hljs-number">50</span>, <span class="hljs-number">1</span>) + <span class="hljs-number">1</span>)
+plt.plot(np.random.rand(<span class="hljs-number">50</span>, <span class="hljs-number">1</span>) + <span class="hljs-number">2</span>)
+plt.show()
+</code></pre>
+</div></div><h3>Remember to call <code>plt.tight_layout()</code> when using subplots</h3>
+<p>Subplots are supports by Matplotlib. Before calling <code>plt.show()</code>, remember to call <code>plt.tight_layout()</code> to avoid overlapping titles/labels/etc<sup class="footnote-ref"><a href="https://research.wmz.ninja/articles/2018/10/notes-on-migrating-doa-tools-from-matlab-to-python.html#fn9" id="fnref9">[9]</a></sup>.</p>
+<h3>Stem plots come with baselines by default</h3>
+<p>In MATLAB, stem plots do not come with baselines. However, Matplotlib's stem plots will have baselines drawn be default. You can remove the baselines by setting <code>basefmt</code> to <code>' '</code>.</p>
+<div class="environment compare"><div class="environment column"><p><strong>MATLAB:</strong></p>
+<pre><code class="language-MATLAB"><span class="hljs-comment">% A simple stem plot.</span>
+figure;
+stem([<span class="hljs-number">1</span> <span class="hljs-number">2</span> <span class="hljs-number">3</span> <span class="hljs-number">2</span> <span class="hljs-number">1</span>]);
+
+</code></pre>
+</div><div class="environment column"><p><strong>Python:</strong></p>
+<pre><code class="language-Python"><span class="hljs-comment"># A simple stem plot.</span>
+plt.figure()
+plt.stem([<span class="hljs-number">1</span>, <span class="hljs-number">2</span>, <span class="hljs-number">3</span>, <span class="hljs-number">2</span>, <span class="hljs-number">1</span>], basefmt=<span class="hljs-string">' '</span>)
+plt.show()
+</code></pre>
+</div></div><h3>You need to manually create 3D axes in <code>matplotlib</code></h3>
+<p>By default, Matplotlib's axes are for 2D plots. To enable 3D plots, you need to import <code>Axes3D</code> from <code>mpl_toolkits.mplot3d</code> and manually create 3D axes.</p>
+<div class="environment compare"><div class="environment column"><p><strong>MATLAB:</strong></p>
+<pre><code class="language-MATLAB"># Visualize <span class="hljs-number">3</span>D Gaussian samples.
+x = <span class="hljs-built_in">randn</span>(<span class="hljs-number">100</span>, <span class="hljs-number">3</span>);
+figure;
+scatter3(x(:,<span class="hljs-number">1</span>), x(:,<span class="hljs-number">2</span>), x(:,<span class="hljs-number">3</span>));
+
+
+
+
+</code></pre>
+</div><div class="environment column"><p><strong>Python:</strong></p>
+<pre><code class="language-Python"><span class="hljs-comment"># Visualize 3D Gaussian samples.</span>
+<span class="hljs-keyword">from</span> mpl_toolkits.mplot3d <span class="hljs-keyword">import</span> Axes3D
+
+x = np.random.randn(<span class="hljs-number">100</span>, <span class="hljs-number">3</span>)
+fig = plt.figure()
+ax = fig.add_subplot(<span class="hljs-number">111</span>, projection=<span class="hljs-string">'3d'</span>)
+ax.scatter(x[:, <span class="hljs-number">0</span>], x[:, <span class="hljs-number">1</span>], x[:, <span class="hljs-number">2</span>])
+fig.show()
+</code></pre>
+</div></div><h3>3D plotting can be very slow in Matplotlib</h3>
+<p>Rendering 3D plots in MATLAB on modern PCs is very fast because MATLAB plots' rendering are hardware accelerated. Matplotlib currently does not support hardware acceleration, and large 3D plots will take a long time to render. To display complex 3D plots, consider using <a href="https://docs.enthought.com/mayavi/mayavi/">Mayavi</a> instead of Matplotlib<sup class="footnote-ref"><a href="https://research.wmz.ninja/articles/2018/10/notes-on-migrating-doa-tools-from-matlab-to-python.html#fn10" id="fnref10">[10]</a></sup>.</p>
+<h3><code>set_aspect('equal')</code> is broken in 3D plots</h3>
+<p>In some cases, you want the three axis in a 3D plot share same scale (e.g., visualizing points on a unit sphere). If you use <code>ax.set_aspect('equal')</code> you will obtain weired results. This is a known issue and you can find the discussion <a href="https://github.com/matplotlib/matplotlib/issues/1077">here on GitHub</a>. Currently my workaround is to manually set the limits of the three axes. You can find the relevant code <a href="https://github.com/morriswmz/doatools.py/blob/4d413c4b3e56c447bf415db255dabb2ff6fcb6e2/doatools/plotting/plot_array.py#L22">here</a>.</p>
+<hr class="footnotes-sep">
+<section class="footnotes">
+<ol class="footnotes-list">
+<li id="fn1" class="footnote-item"><p>See <a href="https://www.mathworks.com/help/matlab/learn_matlab/matrices-and-arrays.html">https://www.mathworks.com/help/matlab/learn_matlab/matrices-and-arrays.html</a>. <a href="https://research.wmz.ninja/articles/2018/10/notes-on-migrating-doa-tools-from-matlab-to-python.html#fnref1" class="footnote-backref">↩</a></p>
+</li>
+<li id="fn2" class="footnote-item"><p>Refer to "Indexing with a Single Index" here: <a href="https://www.mathworks.com/help/matlab/math/array-indexing.html">https://www.mathworks.com/help/matlab/math/array-indexing.html</a>. <a href="https://research.wmz.ninja/articles/2018/10/notes-on-migrating-doa-tools-from-matlab-to-python.html#fnref2" class="footnote-backref">↩</a></p>
+</li>
+<li id="fn3" class="footnote-item"><p>See <a href="https://www.mathworks.com/help/matlab/ref/squeeze.html">https://www.mathworks.com/help/matlab/ref/squeeze.html</a>. <a href="https://research.wmz.ninja/articles/2018/10/notes-on-migrating-doa-tools-from-matlab-to-python.html#fnref3" class="footnote-backref">↩</a></p>
+</li>
+<li id="fn4" class="footnote-item"><p>For more details, check <a href="https://docs.scipy.org/doc/numpy-1.15.0/reference/arrays.indexing.html">https://docs.scipy.org/doc/numpy-1.15.0/reference/arrays.indexing.html</a>. <a href="https://research.wmz.ninja/articles/2018/10/notes-on-migrating-doa-tools-from-matlab-to-python.html#fnref4" class="footnote-backref">↩</a></p>
+</li>
+<li id="fn5" class="footnote-item"><p>See <a href="https://docs.scipy.org/doc/scipy/reference/linalg.html">https://docs.scipy.org/doc/scipy/reference/linalg.html</a>. <a href="https://research.wmz.ninja/articles/2018/10/notes-on-migrating-doa-tools-from-matlab-to-python.html#fnref5" class="footnote-backref">↩</a></p>
+</li>
+<li id="fn6" class="footnote-item"><p>See <a href="https://www.mathworks.com/help/matlab/ref/mldivide.html">https://www.mathworks.com/help/matlab/ref/mldivide.html</a> and <a href="https://www.mathworks.com/help/matlab/ref/mrdivide.html">https://www.mathworks.com/help/matlab/ref/mrdivide.html</a>. <a href="https://research.wmz.ninja/articles/2018/10/notes-on-migrating-doa-tools-from-matlab-to-python.html#fnref6" class="footnote-backref">↩</a></p>
+</li>
+<li id="fn7" class="footnote-item"><p>See <a href="https://docs.scipy.org/doc/scipy/reference/signal.html">https://docs.scipy.org/doc/scipy/reference/signal.html</a>. <a href="https://research.wmz.ninja/articles/2018/10/notes-on-migrating-doa-tools-from-matlab-to-python.html#fnref7" class="footnote-backref">↩</a></p>
+</li>
+<li id="fn8" class="footnote-item"><p>Matplotlib used to have the <code>hold()</code> command. Now it is obsolete: <a href="https://matplotlib.org/api/_as_gen/matplotlib.pyplot.hold.html">https://matplotlib.org/api/_as_gen/matplotlib.pyplot.hold.html</a>. <a href="https://research.wmz.ninja/articles/2018/10/notes-on-migrating-doa-tools-from-matlab-to-python.html#fnref8" class="footnote-backref">↩</a></p>
+</li>
+<li id="fn9" class="footnote-item"><p>See the examples here: <a href="https://matplotlib.org/users/tight_layout_guide.html">https://matplotlib.org/users/tight_layout_guide.html</a>. <a href="https://research.wmz.ninja/articles/2018/10/notes-on-migrating-doa-tools-from-matlab-to-python.html#fnref9" class="footnote-backref">↩</a></p>
+</li>
+<li id="fn10" class="footnote-item"><p>See <a href="https://matplotlib.org/mpl_toolkits/mplot3d/faq.html">https://matplotlib.org/mpl_toolkits/mplot3d/faq.html</a> for FAQs regarding 3D plots in Matplotlib. <a href="https://research.wmz.ninja/articles/2018/10/notes-on-migrating-doa-tools-from-matlab-to-python.html#fnref10" class="footnote-backref">↩</a></p>
+</li>
+</ol>
+</section>
+</div>
+      </div>
+    </div>
+    <div class="footer_layout">
+      <div class="footer">
+        <p>©2016-2018 <a href="https://research.wmz.ninja/">Mianzhi Wang</a></p>
+        <p>Email: mianzhi[dot]wang@wustl[dot]edu</p>
+        <p>
+           Campus Box 1042, <a href="https://www.google.com/maps/place/Green+Hall/@38.648964,-90.301571,17z/data=!3m1!4b1!4m2!3m1!1s0x87d8caaa49488e03:0x3c1daa1e576bd2f5">Green Hall 1102, One Brookings Drive, St. Louis, MO 63130</a></p>
+        <p id="privacy_notice">*This website uses <a href="https://www.google.com/analytics">Google Analytics</a> (which uses cookies) to collect basic anonymous data for website statistics. <br> You are free to disable cookies or enable <a href="https://en.wikipedia.org/wiki/Do_Not_Track">Do Not Track</a>.</p>
+      </div>
+    </div>
+    <script>
+      var _dnt_enabled = navigator.doNotTrack || window.doNotTrack || navigator.msDoNotTrack;
+      _dnt_enabled = _dnt_enabled === 'unspecified' ? false : !!_dnt_enabled;
+      if (!_dnt_enabled) {
+        (function(i,s,o,g,r,a,m){i['GoogleAnalyticsObject']=r;i[r]=i[r]||function(){
+        (i[r].q=i[r].q||[]).push(arguments)},i[r].l=1*new Date();a=s.createElement(o),
+        m=s.getElementsByTagName(o)[0];a.async=1;a.src=g;m.parentNode.insertBefore(a,m)
+        })(window,document,'script','https://www.google-analytics.com/analytics.js','ga');
+        ga('create', 'UA-37305593-4', 'auto');
+        ga('send', 'pageview');
+      }
+    </script>
+  
+<div id="uOIw&amp;JsH1660735589588"></div></body></html>
